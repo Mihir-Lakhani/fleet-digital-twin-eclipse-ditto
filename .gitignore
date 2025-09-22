@@ -1,0 +1,28 @@
+# VS Code files
+.vscode/
+
+# Python cache and environment files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+ENV/
+
+# Node modules
+node_modules/
+
+# Docker files
+*.log
+docker-compose.override.yaml
+*.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE/editor files
+.idea/
+*.sublime-project
+*.sublime-workspace
