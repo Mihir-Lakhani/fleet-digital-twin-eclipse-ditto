@@ -1,0 +1,7 @@
+service_name: fleet_vehicle_digital_twin
+retry_attempts: 3
+connection_timeout: 5000
+logging_level: INFO
+device_types:
+  sensor: gps
+  actuator: engine_switch

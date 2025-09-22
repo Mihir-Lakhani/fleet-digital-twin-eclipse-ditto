@@ -1,0 +1,98 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: digitaltwindb
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - digital_twin_network
+
+  mqtt_broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt_broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - digital_twin_network
+
+  # Simplified Ditto setup - using gateway only for now
+  ditto-policies:
+    image: eclipse/ditto-policies:3.4.0
+    container_name: ditto-policies
+    restart: unless-stopped
+    environment:
+      - MONGO_DB_HOSTNAME=mongodb
+      - TZ=Europe/Berlin
+    depends_on:
+      - mongodb
+    networks:
+      - digital_twin_network
+
+  ditto-things:
+    image: eclipse/ditto-things:3.4.0
+    container_name: ditto-things
+    restart: unless-stopped
+    environment:
+      - MONGO_DB_HOSTNAME=mongodb
+      - TZ=Europe/Berlin
+    depends_on:
+      - mongodb
+      - ditto-policies
+    networks:
+      - digital_twin_network
+
+  ditto-gateway:
+    image: eclipse/ditto-gateway:3.4.0
+    container_name: ditto-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_DB_HOSTNAME=mongodb
+      - TZ=Europe/Berlin
+    depends_on:
+      - mongodb
+      - ditto-policies
+      - ditto-things
+    networks:
+      - digital_twin_network
+
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: digital_twin_app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-5000}:5000"
+    environment:
+      - ECLIPSE_DITTO_API_URL=${ECLIPSE_DITTO_API_URL}
+      - ECLIPSE_DITTO_API_KEY=${ECLIPSE_DITTO_API_KEY}
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL}
+      - MQTT_BROKER_USER=${MQTT_BROKER_USER}
+      - MQTT_BROKER_PASSWORD=${MQTT_BROKER_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
+      - APP_PORT=${APP_PORT}
+    depends_on:
+      - ditto-gateway
+      - mqtt_broker
+      - mongodb
+    networks:
+      - digital_twin_network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  digital_twin_network:
+    driver: bridge
