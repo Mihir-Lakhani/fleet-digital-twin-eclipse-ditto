@@ -62,6 +62,76 @@
         }
       }
     },
+    "/api/test": {
+      "get": {
+        "summary": "CORS Test Endpoint",
+        "description": "Test endpoint to verify CORS is working",
+        "tags": ["API Testing"],
+        "responses": {
+          "200": {
+            "description": "CORS test successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "CORS test successful"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "cors": {
+                      "type": "string",
+                      "example": "enabled"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "summary": "API Status",
+        "description": "Get API status and configuration",
+        "tags": ["API Testing"],
+        "responses": {
+          "200": {
+            "description": "API status information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "string",
+                      "example": "Digital Twin API"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "1.0.0"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "running"
+                    },
+                    "cors": {
+                      "type": "string",
+                      "example": "enabled"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/things": {
       "get": {
         "summary": "List Things",
@@ -74,15 +144,15 @@
             "schema": {
               "type": "string"
             },
-            "description": "Comma-separated list of fields to include"
+            "description": "Comma-separated list of fields to include in response"
           },
           {
-            "name": "filter",
-            "in": "query", 
+            "name": "option",
+            "in": "query",
             "schema": {
               "type": "string"
             },
-            "description": "RQL filter expression"
+            "description": "Additional options for the request"
           }
         ],
         "responses": {
@@ -91,7 +161,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ThingsResponse"
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Thing"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -100,7 +178,7 @@
       },
       "post": {
         "summary": "Create Thing",
-        "description": "Create a new digital twin thing",
+        "description": "Create a new digital twin thing in Eclipse Ditto",
         "tags": ["Things"],
         "requestBody": {
           "required": true,
@@ -139,7 +217,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The thing ID"
+            "description": "Unique identifier of the thing"
           }
         ],
         "responses": {
@@ -160,7 +238,7 @@
       },
       "put": {
         "summary": "Update Thing",
-        "description": "Update a digital twin thing",
+        "description": "Update an existing digital twin thing",
         "tags": ["Things"],
         "parameters": [
           {
@@ -170,7 +248,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The thing ID"
+            "description": "Unique identifier of the thing"
           }
         ],
         "requestBody": {
@@ -193,6 +271,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Thing not found"
           }
         }
       },
@@ -208,7 +289,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The thing ID"
+            "description": "Unique identifier of the thing"
           }
         ],
         "responses": {
@@ -224,7 +305,7 @@
     "/policies": {
       "get": {
         "summary": "List Policies",
-        "description": "Retrieve all access control policies from Eclipse Ditto",
+        "description": "Retrieve all access control policies",
         "tags": ["Policies"],
         "responses": {
           "200": {
@@ -232,7 +313,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PoliciesResponse"
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Policy"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -268,7 +357,7 @@
             "example": "success"
           },
           "mqtt": {
-            "type": "string", 
+            "type": "string",
             "example": "success"
           },
           "mongodb": {
@@ -282,66 +371,36 @@
         "properties": {
           "thingId": {
             "type": "string",
-            "example": "com.company:vehicle-001"
+            "example": "com.example:vehicle-001"
           },
           "policyId": {
             "type": "string",
-            "example": "com.company:vehicle-policy"
+            "example": "com.example:vehicle-policy"
           },
           "definition": {
             "type": "string",
-            "example": "com.company:VehicleModel:1.0.0"
+            "example": "com.example:VehicleModel:1.0.0"
           },
           "attributes": {
             "type": "object",
             "properties": {
               "manufacturer": {
                 "type": "string",
-                "example": "FleetCorp"
+                "example": "Toyota"
               },
               "model": {
                 "type": "string",
-                "example": "Delivery Truck X1"
+                "example": "Prius"
               },
               "year": {
                 "type": "integer",
                 "example": 2023
-              },
-              "vin": {
-                "type": "string",
-                "example": "1HGBH41JXMN109186"
               }
             }
           },
           "features": {
             "type": "object",
             "properties": {
-              "gps": {
-                "type": "object",
-                "properties": {
-                  "properties": {
-                    "type": "object",
-                    "properties": {
-                      "latitude": {
-                        "type": "number",
-                        "example": 52.5200
-                      },
-                      "longitude": {
-                        "type": "number",
-                        "example": 13.4050
-                      },
-                      "altitude": {
-                        "type": "number",
-                        "example": 34.0
-                      },
-                      "speed": {
-                        "type": "number",
-                        "example": 45.5
-                      }
-                    }
-                  }
-                }
-              },
               "engine": {
                 "type": "object",
                 "properties": {
@@ -350,20 +409,29 @@
                     "properties": {
                       "status": {
                         "type": "string",
-                        "enum": ["on", "off"],
-                        "example": "on"
+                        "example": "running"
                       },
                       "rpm": {
-                        "type": "integer",
-                        "example": 1500
-                      },
-                      "temperature": {
                         "type": "number",
-                        "example": 85.5
-                      },
-                      "fuelLevel": {
+                        "example": 2500
+                      }
+                    }
+                  }
+                }
+              },
+              "location": {
+                "type": "object",
+                "properties": {
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": {
                         "type": "number",
-                        "example": 75.2
+                        "example": 37.7749
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "example": -122.4194
                       }
                     }
                   }
@@ -373,30 +441,31 @@
           }
         }
       },
-      "ThingsResponse": {
+      "Policy": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Thing"
-            }
-          }
-        }
-      },
-      "PoliciesResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "policyId": {
-                  "type": "string"
-                },
-                "entries": {
-                  "type": "object"
+          "policyId": {
+            "type": "string",
+            "example": "com.example:vehicle-policy"
+          },
+          "entries": {
+            "type": "object",
+            "properties": {
+              "owner": {
+                "type": "object",
+                "properties": {
+                  "subjects": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  },
+                  "resources": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
                 }
               }
             }
@@ -421,6 +490,10 @@
     {
       "name": "Health",
       "description": "Health check and service connectivity endpoints"
+    },
+    {
+      "name": "API Testing",
+      "description": "CORS and API testing endpoints"
     },
     {
       "name": "Things",

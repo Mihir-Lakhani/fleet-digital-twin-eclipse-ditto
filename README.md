@@ -95,6 +95,8 @@ The application consists of the following services:
 - **Main App**: http://localhost:5000
 - **Health Check**: http://localhost:5000/
 - **Connection Test**: http://localhost:5000/test-connections
+- **CORS Test**: http://localhost:5000/api/test ⭐ *New*
+- **API Status**: http://localhost:5000/api/status ⭐ *New*
 
 ### User Interfaces  
 - **Swagger UI**: http://localhost:8082 - Interactive API documentation
@@ -105,17 +107,47 @@ The application consists of the following services:
 - **MQTT Broker**: localhost:1883
 - **Eclipse Ditto API**: http://localhost:8080/api/2
 
+## ✅ CORS Support & Cross-Origin Access
+
+**✅ CORS ENABLED**: The Digital Twin application now supports Cross-Origin Resource Sharing (CORS), enabling Swagger UI and Ditto UI to make API calls without "Failed to fetch" errors.
+
+### CORS Configuration
+- **Flask-CORS**: Enabled for all endpoints with wildcard origins (`*`)
+- **Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
+- **Allowed Headers**: Content-Type, Authorization
+- **Response Headers**: Includes `Access-Control-Allow-Origin: *`
+
+### Testing CORS
+```powershell
+# Test CORS-enabled endpoint
+Invoke-WebRequest -Uri "http://localhost:5000/api/test" -Method GET
+
+# Response should include: Access-Control-Allow-Origin: *
+```
+
+### Production Security
+⚠️ **For production deployments**: Replace wildcard (`*`) origins with specific domains:
+```python
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://yourdomain.com", "https://admin.yourdomain.com"]
+    }
+})
+```
+
 ### 🔐 UI Service Authentication
 
 **Swagger UI** (Port 8082):
-- No authentication required
+- No authentication required  
 - Displays comprehensive API documentation for Digital Twin services
 - Interactive testing interface for all endpoints
+- ✅ **CORS ENABLED**: Can now make API calls to localhost:5000 without errors
 
 **Ditto UI** (Port 8083):
 - Default credentials: Username `ditto`, Password `ditto`  
 - Web interface for creating and managing digital twin "things"
 - Real-time monitoring of device states and policies
+- ✅ **Network Access**: Configured to access Ditto Gateway via localhost:8080
 
 ### 🚦 Service Management
 
@@ -196,7 +228,45 @@ python src/communication.py
 
 ⚠️ **Known Issues:**
 - Eclipse Ditto cluster discovery warnings (services still functional)
-- External connections use localhost, internal use container names
+- ~~External connections use localhost, internal use container names~~ ✅ **FIXED with CORS**
+
+## 🔧 Troubleshooting
+
+### CORS "Failed to fetch" Errors ✅ **RESOLVED**
+If you encounter "Failed to fetch" errors in Swagger UI or Ditto UI:
+
+**✅ Solution Applied:**
+- Flask-CORS enabled in `src/app.py`
+- CORS headers (`Access-Control-Allow-Origin: *`) added to all API responses
+- Docker services configured for proper cross-origin access
+
+**Verify CORS is working:**
+```powershell
+# Check for CORS headers in response
+Invoke-WebRequest -Uri "http://localhost:5000/api/test" | Select-Object Headers
+```
+
+### Service Connection Issues
+```powershell
+# Check all services are running
+docker-compose -f docker-compose-final.yaml ps
+
+# View logs for specific service
+docker-compose -f docker-compose-final.yaml logs [service-name]
+
+# Restart specific service
+docker-compose -f docker-compose-final.yaml restart [service-name]
+```
+
+### UI Service Problems
+```powershell
+# Restart UI services only
+docker-compose -f docker-compose-final.yaml restart swagger-ui ditto-ui
+
+# Check UI service health
+Invoke-WebRequest -Uri "http://localhost:8082" | Select-Object StatusCode
+Invoke-WebRequest -Uri "http://localhost:8083" | Select-Object StatusCode
+```
 
 ## 🔧 Configuration
 

@@ -29,7 +29,7 @@ services:
 
   # Eclipse Ditto Services - Completely standalone configuration
   ditto-policies:
-    image: eclipse/ditto-policies:3.2.0
+    image: eclipse/ditto-policies:3.4.0
     container_name: ditto-policies
     restart: unless-stopped
     environment:
@@ -37,19 +37,16 @@ services:
       - TZ=Europe/Berlin
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
-      # COMPLETELY DISABLE CLUSTERING  
+      # COMPLETELY DISABLE CLUSTERING
       - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
-      - PEKKO_CLUSTER_BOOTSTRAP_REQUIRED_CONTACT_POINT_NR=0
       - DISCOVERY_METHOD=config
-      - PEKKO_CLUSTER_SEED_NODES=""
-      - PEKKO_DISCOVERY_METHOD=config
     depends_on:
       - mongodb
     networks:
       - digital_twin_network
 
   ditto-things:
-    image: eclipse/ditto-things:3.2.0
+    image: eclipse/ditto-things:3.4.0
     container_name: ditto-things
     restart: unless-stopped
     environment:
@@ -59,10 +56,7 @@ services:
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
       # COMPLETELY DISABLE CLUSTERING
       - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
-      - PEKKO_CLUSTER_BOOTSTRAP_REQUIRED_CONTACT_POINT_NR=0
       - DISCOVERY_METHOD=config
-      - PEKKO_CLUSTER_SEED_NODES=""
-      - PEKKO_DISCOVERY_METHOD=config
     depends_on:
       - mongodb
       - ditto-policies
@@ -70,25 +64,21 @@ services:
       - digital_twin_network
 
   ditto-gateway:
-    image: eclipse/ditto-gateway:3.2.0
+    image: eclipse/ditto-gateway:3.4.0
     container_name: ditto-gateway
     restart: unless-stopped
     ports:
       - "8080:8080"
-      - "2551:2551"  # Akka remoting port
     environment:
       - MONGO_DB_HOSTNAME=mongodb
       - TZ=Europe/Berlin
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
+      # COMPLETELY DISABLE CLUSTERING BOOTSTRAP
+      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
+      - DISCOVERY_METHOD=config
       - ENABLE_DUMMY_AUTH=true
       - DITTO_GATEWAY_AUTHENTICATION_DUMMY_DUMMY=true
-      # SINGLE NODE CLUSTER CONFIGURATION
-      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=1
-      - DISCOVERY_METHOD=config
-      - AKKA_CLUSTER_SEED_NODES=akka://ditto-cluster@ditto-gateway:2551
-      - AKKA_DISCOVERY_CONFIG_SERVICES_DITTO-CLUSTER_ENDPOINTS_0_HOST=ditto-gateway
-      - AKKA_DISCOVERY_CONFIG_SERVICES_DITTO-CLUSTER_ENDPOINTS_0_PORT=2551
     depends_on:
       - mongodb
       - ditto-policies
@@ -104,10 +94,37 @@ services:
     ports:
       - "8082:8080"
     environment:
-      - SWAGGER_JSON_URL=http://localhost:5000/api/openapi.json
+      - SWAGGER_JSON=/usr/share/nginx/html/openapi.json
+      - API_URL=http://localhost:5000/api/test
       - CORS_ENABLED=true
       - SUPPORTED_SUBMIT_METHODS=["get", "post", "put", "delete", "patch"]
-      - BASE_URL=/
+    volumes:
+      - ./config/openapi.json:/usr/share/nginx/html/openapi.json:ro
+    depends_on:
+      - app
+    networks:
+      - digital_twin_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # User Interface Services
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v5.9.1
+    container_name: swagger-ui
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    environment:
+      - SWAGGER_JSON=/usr/share/nginx/html/openapi.json
+      - API_URL=http://localhost:5000/api/test
+      - CORS_ENABLED=true
+      - SUPPORTED_SUBMIT_METHODS=["get", "post", "put", "delete", "patch"]
+    volumes:
+      - ./config/openapi.json:/usr/share/nginx/html/openapi.json:ro
     depends_on:
       - app
     networks:
@@ -126,7 +143,7 @@ services:
     ports:
       - "8083:8080"
     environment:
-      - DITTO_API_BASE_URL=http://app:5000/api/ditto
+      - DITTO_API_BASE_URL=http://localhost:5000/api/ditto
       - ENABLE_PRE_AUTH=false
       - DITTO_USERNAME=ditto
       - DITTO_PASSWORD=ditto
