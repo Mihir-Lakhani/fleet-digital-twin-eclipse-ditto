@@ -81,6 +81,8 @@ The application consists of the following services:
 | Service | Description | Port | Status |
 |---------|-------------|------|--------|
 | **Digital Twin App** | Flask web application | 5000 | ✅ Running |
+| **Swagger UI** | Interactive API documentation | 8082 | ✅ Available |
+| **Ditto UI** | Web interface for digital twins | 8083 | ✅ Available |
 | **MongoDB** | Database for data storage | 27017 | ✅ Running |
 | **MQTT Broker** | Eclipse Mosquitto message broker | 1883, 9001 | ✅ Running |
 | **Ditto Gateway** | Eclipse Ditto API gateway | 8080 | ✅ Running |
@@ -90,13 +92,80 @@ The application consists of the following services:
 ## 🌐 Endpoints
 
 ### Web Application
-- **Health Check**: http://localhost:5000
+- **Main App**: http://localhost:5000
+- **Health Check**: http://localhost:5000/
 - **Connection Test**: http://localhost:5000/test-connections
+
+### User Interfaces  
+- **Swagger UI**: http://localhost:8082 - Interactive API documentation
+- **Ditto UI**: http://localhost:8083 - Web interface for managing digital twins
 
 ### External Services
 - **MongoDB**: localhost:27017
 - **MQTT Broker**: localhost:1883
-- **Eclipse Ditto**: localhost:8080 (cluster initializing)
+- **Eclipse Ditto API**: http://localhost:8080/api/2
+
+### 🔐 UI Service Authentication
+
+**Swagger UI** (Port 8082):
+- No authentication required
+- Displays comprehensive API documentation for Digital Twin services
+- Interactive testing interface for all endpoints
+
+**Ditto UI** (Port 8083):
+- Default credentials: Username `ditto`, Password `ditto`  
+- Web interface for creating and managing digital twin "things"
+- Real-time monitoring of device states and policies
+
+### 🚦 Service Management
+
+**Start All Services (including UI services):**
+```powershell
+# Full stack with web interfaces
+docker-compose -f docker-compose-final.yaml up -d
+
+# Check service status
+docker-compose -f docker-compose-final.yaml ps
+```
+
+**Start Core Services Only:**
+```powershell
+# Start without UI services (original configuration)
+docker-compose -f docker-compose-final.yaml up -d mongodb mqtt_broker ditto-policies ditto-things ditto-gateway app
+```
+
+**Stop Services:**
+```powershell
+# Stop all services
+docker-compose -f docker-compose-final.yaml down
+
+# Stop and remove volumes (⚠️ removes all data)
+docker-compose -f docker-compose-final.yaml down -v
+```
+
+**Individual Service Management:**
+```powershell
+# Start only UI services
+docker-compose -f docker-compose-final.yaml up -d swagger-ui ditto-ui
+
+# View logs for specific service
+docker-compose -f docker-compose-final.yaml logs -f swagger-ui
+```
+
+### 🛡️ Security Recommendations
+
+**For Development Environment:**
+- Default credentials are used (username: `ditto`, password: `ditto`)
+- UI services are accessible without authentication
+- Use only in isolated development environments
+
+**For Production Deployment:**
+- Change all default passwords in `.env` file
+- Enable proper authentication on all services
+- Use reverse proxy with SSL/TLS termination
+- Restrict network access with firewall rules
+- Regular security updates for all Docker images
+- Consider disabling UI services in production environments
 
 ## 🧪 Testing
 

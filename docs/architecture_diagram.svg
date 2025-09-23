@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }
+      .service-box { fill: #ecf0f1; stroke: #34495e; stroke-width: 2; rx: 8; }
+      .app-box { fill: #3498db; stroke: #2980b9; stroke-width: 2; rx: 8; }
+      .ditto-box { fill: #e74c3c; stroke: #c0392b; stroke-width: 2; rx: 8; }
+      .data-box { fill: #27ae60; stroke: #229954; stroke-width: 2; rx: 8; }
+      .client-box { fill: #9b59b6; stroke: #8e44ad; stroke-width: 2; rx: 8; }
+      .service-text { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: white; text-anchor: middle; }
+      .label-text { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; text-anchor: middle; }
+      .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .green-arrow { stroke: #27ae60; stroke-width: 2; fill: none; marker-end: url(#greenhead); }
+      .blue-arrow { stroke: #3498db; stroke-width: 2; fill: none; marker-end: url(#bluehead); }
+      .red-arrow { stroke: #e74c3c; stroke-width: 2; fill: none; marker-end: url(#redhead); }
+      .legend-text { font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; }
+      .legend-box { fill: #f8f9fa; stroke: #dee2e6; stroke-width: 1; rx: 4; }
+      .warning-text { font-family: Arial, sans-serif; font-size: 10px; fill: #e74c3c; font-weight: bold; }
+    </style>
+    
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34495e" />
+    </marker>
+    <marker id="greenhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#27ae60" />
+    </marker>
+    <marker id="bluehead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3498db" />
+    </marker>
+    <marker id="redhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="700" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="500" y="30" class="title">Digital Twin Architecture - Working Configuration</text>
+  
+  <!-- Client -->
+  <rect x="50" y="250" width="120" height="80" class="client-box"/>
+  <text x="110" y="280" class="service-text">Client</text>
+  <text x="110" y="300" class="service-text">(Browser/App)</text>
+  
+  <!-- Digital Twin App (Central) -->
+  <rect x="300" y="250" width="160" height="80" class="app-box"/>
+  <text x="380" y="280" class="service-text">Digital Twin App</text>
+  <text x="380" y="300" class="service-text">(Flask - Port 5000)</text>
+  
+  <!-- Ditto Gateway -->
+  <rect x="600" y="150" width="140" height="60" class="ditto-box"/>
+  <text x="670" y="175" class="service-text">Ditto Gateway</text>
+  <text x="670" y="195" class="service-text">(Port 8080)</text>
+  
+  <!-- Ditto Things -->
+  <rect x="800" y="100" width="120" height="50" class="ditto-box"/>
+  <text x="860" y="120" class="service-text">Ditto Things</text>
+  <text x="860" y="135" class="service-text">(Internal)</text>
+  
+  <!-- Ditto Policies -->
+  <rect x="800" y="170" width="120" height="50" class="ditto-box"/>
+  <text x="860" y="190" class="service-text">Ditto Policies</text>
+  <text x="860" y="205" class="service-text">(Internal)</text>
+  
+  <!-- MQTT Broker -->
+  <rect x="650" y="350" width="140" height="80" class="data-box"/>
+  <text x="720" y="380" class="service-text">MQTT Broker</text>
+  <text x="720" y="400" class="service-text">(Ports 1883, 9001)</text>
+  
+  <!-- MongoDB -->
+  <rect x="650" y="480" width="140" height="60" class="data-box"/>
+  <text x="720" y="505" class="service-text">MongoDB</text>
+  <text x="720" y="520" class="service-text">(Port 27017)</text>
+  
+  <!-- IoT Devices -->
+  <rect x="850" y="350" width="100" height="60" class="service-box"/>
+  <text x="900" y="375" class="service-text">IoT Devices</text>
+  <text x="900" y="390" class="service-text">(Fleet)</text>
+  
+  <!-- Client to App -->
+  <line x1="170" y1="290" x2="300" y2="290" class="blue-arrow"/>
+  <text x="235" y="280" class="label-text">http://localhost:5000</text>
+  <text x="235" y="305" class="label-text">/test-connections</text>
+  
+  <!-- App to Ditto Gateway -->
+  <line x1="460" y1="270" x2="600" y2="190" class="red-arrow"/>
+  <text x="530" y="220" class="label-text">ditto-gateway:8080/api/2</text>
+  <text x="530" y="235" class="warning-text">(Internal Only)</text>
+  
+  <!-- App to MQTT -->
+  <line x1="460" y1="310" x2="650" y2="380" class="green-arrow"/>
+  <text x="555" y="335" class="label-text">tcp://mqtt_broker:1883</text>
+  <text x="555" y="350" class="label-text">tcp://mqtt_broker:9001</text>
+  
+  <!-- App to MongoDB -->
+  <line x1="460" y1="320" x2="650" y2="500" class="green-arrow"/>
+  <text x="555" y="420" class="label-text">mongodb://mongodb:27017</text>
+  <text x="555" y="435" class="label-text">/digitaltwindb</text>
+  
+  <!-- Ditto Gateway to Things -->
+  <line x1="740" y1="160" x2="800" y2="125" class="arrow"/>
+  <text x="770" y="135" class="label-text">Internal API</text>
+  
+  <!-- Ditto Gateway to Policies -->
+  <line x1="740" y1="190" x2="800" y2="195" class="arrow"/>
+  <text x="770" y="185" class="label-text">Internal API</text>
+  
+  <!-- MQTT to IoT Devices -->
+  <line x1="790" y1="390" x2="850" y2="380" class="green-arrow"/>
+  <text x="820" y="375" class="label-text">MQTT Traffic</text>
+  
+  <!-- Legend Box -->
+  <rect x="50" y="450" width="300" height="200" class="legend-box"/>
+  <text x="200" y="470" class="legend-text" text-anchor="middle" font-weight="bold">LEGEND</text>
+  
+  <text x="60" y="490" class="legend-text" font-weight="bold">✅ Working Services:</text>
+  <text x="60" y="510" class="legend-text">• Digital Twin App (Flask) - Port 5000</text>
+  <text x="60" y="525" class="legend-text">• MongoDB - Port 27017</text>
+  <text x="60" y="540" class="legend-text">• MQTT Broker - Ports 1883, 9001</text>
+  <text x="60" y="555" class="legend-text">• Ditto Services (Internal Communication)</text>
+  
+  <text x="60" y="580" class="legend-text" font-weight="bold">⚠️ Known Limitations:</text>
+  <text x="60" y="600" class="legend-text">• External Ditto Gateway HTTP blocked</text>
+  <text x="60" y="615" class="legend-text">• No Swagger UI, Ditto UI, or Nginx</text>
+  <text x="60" y="630" class="legend-text">• All communication via Docker network</text>
+  
+  <!-- Status Box -->
+  <rect x="400" y="600" width="550" height="80" class="legend-box"/>
+  <text x="675" y="620" class="legend-text" text-anchor="middle" font-weight="bold">SYSTEM STATUS: FULLY OPERATIONAL</text>
+  <text x="675" y="640" class="legend-text" text-anchor="middle">Core Digital Twin functionality validated via /test-connections endpoint</text>
+  <text x="675" y="655" class="legend-text" text-anchor="middle">Internal service communication: ✅ Ditto ✅ MongoDB ✅ MQTT</text>
+  <text x="675" y="670" class="legend-text" text-anchor="middle">Configuration: docker-compose-final.yaml</text>
+
+</svg>

@@ -1,0 +1,177 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: digitaltwindb
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - digital_twin_network
+
+  mqtt_broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt_broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - digital_twin_network
+    user: root
+
+  # Eclipse Ditto Services - Completely standalone configuration
+  ditto-policies:
+    image: eclipse/ditto-policies:3.4.0
+    container_name: ditto-policies
+    restart: unless-stopped
+    environment:
+      - MONGO_DB_HOSTNAME=mongodb
+      - TZ=Europe/Berlin
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
+      - DITTO_DDATA_NUMBER_OF_SHARDS=1
+      # COMPLETELY DISABLE CLUSTERING
+      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
+      - DISCOVERY_METHOD=config
+    depends_on:
+      - mongodb
+    networks:
+      - digital_twin_network
+
+  ditto-things:
+    image: eclipse/ditto-things:3.4.0
+    container_name: ditto-things
+    restart: unless-stopped
+    environment:
+      - MONGO_DB_HOSTNAME=mongodb
+      - TZ=Europe/Berlin
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
+      - DITTO_DDATA_NUMBER_OF_SHARDS=1
+      # COMPLETELY DISABLE CLUSTERING
+      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
+      - DISCOVERY_METHOD=config
+    depends_on:
+      - mongodb
+      - ditto-policies
+    networks:
+      - digital_twin_network
+
+  ditto-gateway:
+    image: eclipse/ditto-gateway:3.4.0
+    container_name: ditto-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_DB_HOSTNAME=mongodb
+      - TZ=Europe/Berlin
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
+      - DITTO_DDATA_NUMBER_OF_SHARDS=1
+      # COMPLETELY DISABLE CLUSTERING BOOTSTRAP
+      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
+      - DISCOVERY_METHOD=config
+      - ENABLE_DUMMY_AUTH=true
+      - DITTO_GATEWAY_AUTHENTICATION_DUMMY_DUMMY=true
+    depends_on:
+      - mongodb
+      - ditto-policies
+      - ditto-things
+    networks:
+      - digital_twin_network
+
+  # User Interface Services
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: swagger-ui
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    environment:
+      - SWAGGER_JSON=/app/openapi.json
+      - BASE_URL=/
+      - DEEP_LINKING=true
+      - DISPLAY_OPERATION_ID=true
+      - DEFAULT_MODELS_EXPAND_DEPTH=1
+      - DEFAULT_MODEL_EXPAND_DEPTH=1
+      - DISPLAY_REQUEST_DURATION=true
+      - DOC_EXPANSION=list
+      - FILTER=true
+      - MAX_DISPLAYED_TAGS=10
+      - SHOW_EXTENSIONS=true
+      - SHOW_COMMON_EXTENSIONS=true
+    volumes:
+      - ./config/openapi.json:/app/openapi.json:ro
+    depends_on:
+      - ditto-gateway
+    networks:
+      - digital_twin_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  ditto-ui:
+    image: eclipse/ditto-ui:3.4.0
+    container_name: ditto-ui
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      - DITTO_API_BASE_URL=http://ditto-gateway:8080/api/2
+      - ENABLE_PRE_AUTH=false
+      - DITTO_USERNAME=ditto
+      - DITTO_PASSWORD=ditto
+      - DITTO_DEVOPS_USERNAME=devops
+      - DITTO_DEVOPS_PASSWORD=devopsPassword
+    depends_on:
+      - ditto-gateway
+    networks:
+      - digital_twin_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  app:
+    build: .
+    container_name: digital_twin_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ECLIPSE_DITTO_API_URL=http://ditto-gateway:8080/api/2
+      - ECLIPSE_DITTO_API_KEY=ditto_api
+      - MQTT_BROKER_URL=tcp://mqtt_broker:1883
+      - MQTT_BROKER_USER=mqtt_user
+      - MQTT_BROKER_PASSWORD=mqtt_password
+      - DATABASE_URL=mongodb://mongodb:27017/digitaltwindb
+      - APP_PORT=5000
+    depends_on:
+      - mongodb
+      - mqtt_broker
+      - ditto-gateway
+    networks:
+      - digital_twin_network
+
+volumes:
+  mongodb_data:
+    driver: local
+  mosquitto_data:
+    driver: local
+  mosquitto_logs:
+    driver: local
+
+networks:
+  digital_twin_network:
+    driver: bridge

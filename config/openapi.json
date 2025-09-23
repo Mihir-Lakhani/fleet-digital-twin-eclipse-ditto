@@ -1,0 +1,434 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Digital Twin Fleet Management API",
+    "description": "Comprehensive API for managing IoT devices, digital twins, and fleet operations using Eclipse Ditto, MQTT, and MongoDB",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Digital Twin Development Team",
+      "email": "contact@digitaltwin.local"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Digital Twin Application Server"
+    },
+    {
+      "url": "http://localhost:8080/api/2",
+      "description": "Eclipse Ditto API Gateway"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Check if the Digital Twin application is running",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "Service is running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-connections": {
+      "get": {
+        "summary": "Test Service Connections",
+        "description": "Test connectivity to all backend services (Ditto, MQTT, MongoDB)",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "Connection test results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionTestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/things": {
+      "get": {
+        "summary": "List Things",
+        "description": "Retrieve all digital twin things from Eclipse Ditto",
+        "tags": ["Things"],
+        "parameters": [
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of fields to include"
+          },
+          {
+            "name": "filter",
+            "in": "query", 
+            "schema": {
+              "type": "string"
+            },
+            "description": "RQL filter expression"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of things",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Thing",
+        "description": "Create a new digital twin thing",
+        "tags": ["Things"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Thing"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Thing created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thing"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/things/{thingId}": {
+      "get": {
+        "summary": "Get Thing",
+        "description": "Retrieve a specific digital twin thing by ID",
+        "tags": ["Things"],
+        "parameters": [
+          {
+            "name": "thingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The thing ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thing details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thing"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Thing not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Thing",
+        "description": "Update a digital twin thing",
+        "tags": ["Things"],
+        "parameters": [
+          {
+            "name": "thingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The thing ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Thing"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Thing updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thing"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Thing",
+        "description": "Delete a digital twin thing",
+        "tags": ["Things"],
+        "parameters": [
+          {
+            "name": "thingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The thing ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Thing deleted successfully"
+          },
+          "404": {
+            "description": "Thing not found"
+          }
+        }
+      }
+    },
+    "/policies": {
+      "get": {
+        "summary": "List Policies",
+        "description": "Retrieve all access control policies from Eclipse Ditto",
+        "tags": ["Policies"],
+        "responses": {
+          "200": {
+            "description": "List of policies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PoliciesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "running"
+          },
+          "service": {
+            "type": "string",
+            "example": "Digital Twin Fleet App"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          }
+        }
+      },
+      "ConnectionTestResponse": {
+        "type": "object",
+        "properties": {
+          "ditto": {
+            "type": "string",
+            "example": "success"
+          },
+          "mqtt": {
+            "type": "string", 
+            "example": "success"
+          },
+          "mongodb": {
+            "type": "string",
+            "example": "success"
+          }
+        }
+      },
+      "Thing": {
+        "type": "object",
+        "properties": {
+          "thingId": {
+            "type": "string",
+            "example": "com.company:vehicle-001"
+          },
+          "policyId": {
+            "type": "string",
+            "example": "com.company:vehicle-policy"
+          },
+          "definition": {
+            "type": "string",
+            "example": "com.company:VehicleModel:1.0.0"
+          },
+          "attributes": {
+            "type": "object",
+            "properties": {
+              "manufacturer": {
+                "type": "string",
+                "example": "FleetCorp"
+              },
+              "model": {
+                "type": "string",
+                "example": "Delivery Truck X1"
+              },
+              "year": {
+                "type": "integer",
+                "example": 2023
+              },
+              "vin": {
+                "type": "string",
+                "example": "1HGBH41JXMN109186"
+              }
+            }
+          },
+          "features": {
+            "type": "object",
+            "properties": {
+              "gps": {
+                "type": "object",
+                "properties": {
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": {
+                        "type": "number",
+                        "example": 52.5200
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "example": 13.4050
+                      },
+                      "altitude": {
+                        "type": "number",
+                        "example": 34.0
+                      },
+                      "speed": {
+                        "type": "number",
+                        "example": 45.5
+                      }
+                    }
+                  }
+                }
+              },
+              "engine": {
+                "type": "object",
+                "properties": {
+                  "properties": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string",
+                        "enum": ["on", "off"],
+                        "example": "on"
+                      },
+                      "rpm": {
+                        "type": "integer",
+                        "example": 1500
+                      },
+                      "temperature": {
+                        "type": "number",
+                        "example": 85.5
+                      },
+                      "fuelLevel": {
+                        "type": "number",
+                        "example": 75.2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ThingsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Thing"
+            }
+          }
+        }
+      },
+      "PoliciesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string"
+                },
+                "entries": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check and service connectivity endpoints"
+    },
+    {
+      "name": "Things",
+      "description": "Digital twin thing management via Eclipse Ditto"
+    },
+    {
+      "name": "Policies",
+      "description": "Access control policy management"
+    }
+  ]
+}
