@@ -3,19 +3,31 @@ import sys
 import json
 import requests
 import base64
-from flask import Flask, jsonify, request, Response, send_from_directory
+from flask import Flask, jsonify, request, Response, send_from_directory, render_template, redirect, url_for
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit, disconnect
 from pymongo import MongoClient
+from datetime import datetime
+import threading
+import time
 
 # Add current directory to Python path for relative imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from communication import test_ditto_connection, test_mqtt_connection, test_mongodb_connection
 
-app = Flask(__name__)
+# Configure Flask app with web-ui templates
+template_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'web-ui', 'templates')
+static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'web-ui', 'static')
+
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'digital-twin-secret-key')
 CORS(app, origins=["*"])
 
-@app.route('/')
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+@app.route('/api/health')
 def health_check():
     return jsonify({
         "status": "running",
@@ -199,6 +211,244 @@ def policies_endpoint():
     """Direct endpoint for Ditto Policies API"""
     return ditto_proxy('policies')
 
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def get_mongodb_client():
+    """Get MongoDB client instance"""
+    mongodb_url = os.getenv('DATABASE_URL', 'mongodb://localhost:27017/')
+    
+    # Handle different URL formats for local development vs Docker
+    # When running Flask locally, connect to localhost
+    # When running Flask in Docker, connect to mongodb hostname
+    if os.getenv('FLASK_IN_DOCKER') == 'true':
+        # Running in Docker - use container hostname
+        if mongodb_url.startswith('mongodb://localhost'):
+            mongodb_url = mongodb_url.replace('localhost', 'mongodb')
+        elif mongodb_url.startswith('mongodb://127.0.0.1'):
+            mongodb_url = mongodb_url.replace('127.0.0.1', 'mongodb')
+    else:
+        # Running locally - use localhost
+        if 'mongodb:27017' in mongodb_url:
+            mongodb_url = mongodb_url.replace('mongodb:27017', 'localhost:27017')
+    
+    return MongoClient(mongodb_url, serverSelectionTimeoutMS=5000)
+
+# =============================================================================
+# WEB UI ROUTES
+# =============================================================================
+
+@app.route('/dashboard')
+def dashboard():
+    """Dashboard home page"""
+    return render_template('dashboard.html')
+
+@app.route('/things')
+def things_list():
+    """Things list page"""
+    return render_template('things-list.html')
+
+@app.route('/create-thing')
+def create_thing():
+    """Create new thing form"""
+    return render_template('thing-form.html')
+
+@app.route('/edit-thing/<thing_id>')
+def edit_thing(thing_id):
+    """Edit existing thing form"""
+    try:
+        # Get thing data from MongoDB
+        mongo_client = get_mongodb_client()
+        db = mongo_client.digitaltwindb
+        collection = db.things
+        
+        thing = collection.find_one({"thingId": thing_id})
+        if not thing:
+            # Try to get from Ditto API as fallback
+            ditto_url = os.getenv("ECLIPSE_DITTO_API_URL")
+            api_key = os.getenv("ECLIPSE_DITTO_API_KEY")
+            
+            if ditto_url and api_key:
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                response = requests.get(f"{ditto_url}/things/{thing_id}", headers=headers)
+                if response.status_code == 200:
+                    thing = response.json()
+                else:
+                    return render_template('thing-form.html', error=f"Thing '{thing_id}' not found")
+            else:
+                return render_template('thing-form.html', error=f"Thing '{thing_id}' not found")
+        
+        # Convert MongoDB ObjectId to string if present
+        if thing and '_id' in thing:
+            thing['_id'] = str(thing['_id'])
+            
+        return render_template('thing-form.html', thing=thing)
+        
+    except Exception as e:
+        return render_template('thing-form.html', error=f"Error loading thing: {str(e)}")
+
+@app.route('/things/<thing_id>')
+def thing_details(thing_id):
+    """Thing details page (redirect to edit for now)"""
+    return redirect(url_for('edit_thing', thing_id=thing_id))
+
+# Static files route for web-ui assets
+@app.route('/static/<path:filename>')
+def web_ui_static(filename):
+    """Serve static files for web UI"""
+    return send_from_directory(app.static_folder, filename)
+
+# Redirect root to dashboard
+@app.route('/')
+def index():
+    """Redirect root to dashboard"""
+    return redirect(url_for('dashboard'))
+
+# =============================================================================
+# REAL-TIME UPDATES (SSE SUPPORT)
+# =============================================================================
+
+@app.route('/events')
+def events():
+    """Server-Sent Events endpoint for real-time updates"""
+    def event_stream():
+        # This is a basic implementation
+        # In a production environment, you'd connect this to your MQTT broker
+        # or database change streams for real-time updates
+        yield "data: {\"type\":\"connected\",\"message\":\"SSE connection established\"}\n\n"
+        
+        # Keep connection alive
+        import time
+        while True:
+            time.sleep(30)  # Send heartbeat every 30 seconds
+            yield "data: {\"type\":\"heartbeat\",\"timestamp\":\"" + str(datetime.now().isoformat()) + "\"}\n\n"
+    
+    return Response(event_stream(), mimetype="text/event-stream",
+                   headers={
+                       "Cache-Control": "no-cache",
+                       "Connection": "keep-alive",
+                       "Access-Control-Allow-Origin": "*",
+                       "Access-Control-Allow-Headers": "Cache-Control"
+                   })
+
+@app.route('/api/dashboard/stats')
+def dashboard_stats():
+    """Get dashboard statistics"""
+    try:
+        mongo_client = get_mongodb_client()
+        db = mongo_client.digitaltwindb
+        things_collection = db.things
+        
+        # Get statistics
+        total_things = things_collection.count_documents({})
+        
+        # Mock additional stats for now
+        # In production, these would be calculated from real data
+        stats = {
+            "total_things": total_things,
+            "active_devices": max(0, total_things - 2),  # Mock active count
+            "offline_devices": min(2, total_things),     # Mock offline count
+            "alerts": 0,                                 # Mock alerts
+            "last_updated": datetime.now().isoformat()
+        }
+        
+        return jsonify(stats)
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to get dashboard stats: {str(e)}",
+            "total_things": 0,
+            "active_devices": 0,
+            "offline_devices": 0,
+            "alerts": 0,
+            "last_updated": datetime.now().isoformat()
+        }), 500
+
+# =============================================================================
+# WEBSOCKET EVENTS
+# =============================================================================
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle WebSocket connection"""
+    print(f"Client connected: {request.sid}")
+    emit('connected', {'type': 'websocket', 'message': 'WebSocket connection established'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle WebSocket disconnection"""
+    print(f"Client disconnected: {request.sid}")
+
+@socketio.on('ping')
+def handle_ping(data):
+    """Handle ping from client"""
+    emit('pong', {'timestamp': datetime.now().isoformat()})
+
+@socketio.on('subscribe.thing')
+def handle_subscribe_thing(data):
+    """Handle subscription to specific thing updates"""
+    thing_id = data.get('thingId')
+    if thing_id:
+        # In a production system, you'd manage subscriptions
+        print(f"Client {request.sid} subscribed to thing: {thing_id}")
+        emit('subscribed', {'thingId': thing_id})
+
+@socketio.on('unsubscribe.thing')
+def handle_unsubscribe_thing(data):
+    """Handle unsubscription from thing updates"""
+    thing_id = data.get('thingId')
+    if thing_id:
+        print(f"Client {request.sid} unsubscribed from thing: {thing_id}")
+        emit('unsubscribed', {'thingId': thing_id})
+
+@socketio.on('request.dashboard.stats')
+def handle_dashboard_stats_request():
+    """Handle request for dashboard stats"""
+    try:
+        mongo_client = get_mongodb_client()
+        db = mongo_client.digitaltwindb
+        things_collection = db.things
+        
+        total_things = things_collection.count_documents({})
+        
+        stats = {
+            "total_things": total_things,
+            "active_devices": max(0, total_things - 2),
+            "offline_devices": min(2, total_things),
+            "alerts": 0,
+            "last_updated": datetime.now().isoformat()
+        }
+        
+        emit('dashboard.stats', {'stats': stats})
+        
+    except Exception as e:
+        emit('error', {'message': f'Failed to get dashboard stats: {str(e)}'})
+
+def broadcast_thing_created(thing_data):
+    """Broadcast thing creation to all connected clients"""
+    socketio.emit('thing.created', {'thing': thing_data})
+
+def broadcast_thing_updated(thing_data):
+    """Broadcast thing update to all connected clients"""
+    socketio.emit('thing.updated', {'thing': thing_data})
+
+def broadcast_thing_deleted(thing_id):
+    """Broadcast thing deletion to all connected clients"""
+    socketio.emit('thing.deleted', {'thingId': thing_id})
+
+def broadcast_system_notification(message, notification_type='info'):
+    """Broadcast system notification to all connected clients"""
+    socketio.emit('system.notification', {
+        'message': message,
+        'type': notification_type,
+        'timestamp': datetime.now().isoformat()
+    })
+
 @app.route('/api/policies/<path:policy_path>', methods=['GET', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
 def policy_by_id(policy_path):
     """Direct endpoint for specific Policy operations"""
@@ -248,7 +498,7 @@ def mongodb_things():
         return response
     
     try:
-        client = MongoClient('mongodb://mongodb:27017/', serverSelectionTimeoutMS=5000)
+        client = get_mongodb_client()
         db = client.digitaltwindb
         things_collection = db.things
         
@@ -282,6 +532,9 @@ def mongodb_things():
                 # Return created Thing (Ditto-compatible response)
                 created_thing = thing_data.copy()
                 created_thing.pop('_id', None)  # Remove MongoDB _id from response
+                
+                # Broadcast thing creation via WebSocket
+                broadcast_thing_created(created_thing)
                 
                 response = jsonify(created_thing)
                 response.status_code = 201
@@ -340,7 +593,7 @@ def mongodb_thing_by_id(thing_id):
         return response
     
     try:
-        client = MongoClient('mongodb://mongodb:27017/', serverSelectionTimeoutMS=5000)
+        client = get_mongodb_client()
         db = client.digitaltwindb
         things_collection = db.things
         
@@ -406,6 +659,9 @@ def mongodb_thing_by_id(thing_id):
                     "status": "not_found"
                 }), 404
             
+            # Broadcast thing deletion
+            broadcast_thing_deleted(thing_id)
+            
             response = Response()
             response.status_code = 204  # No Content
             response.headers['Access-Control-Allow-Origin'] = '*'
@@ -438,6 +694,11 @@ def mongodb_thing_by_id(thing_id):
                 {'$set': patch_data}
             )
             
+            # Get updated thing and broadcast
+            updated_thing = things_collection.find_one({'thingId': thing_id}, {'_id': 0})
+            if updated_thing:
+                broadcast_thing_updated(updated_thing)
+            
             response = Response()
             response.status_code = 204  # No Content
             response.headers['Access-Control-Allow-Origin'] = '*'
@@ -456,9 +717,9 @@ def enhanced_connections_test():
     
     # Test MongoDB
     try:
-        client = MongoClient('mongodb://mongodb:27017/', serverSelectionTimeoutMS=5000)
+        client = get_mongodb_client()
         client.server_info()
-        results['mongodb'] = {'status': 'success', 'url': 'mongodb://mongodb:27017/'}
+        results['mongodb'] = {'status': 'success', 'url': 'localhost:27017'}
     except Exception as e:
         results['mongodb'] = {'status': 'error', 'error': str(e)}
     
@@ -656,4 +917,5 @@ if __name__ == '__main__':
         load_dotenv('config/.env')
     
     port = int(os.getenv('APP_PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Use SocketIO run method for WebSocket support
+    socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)

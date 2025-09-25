@@ -1,0 +1,35 @@
+<!-- Navigation Component -->
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-brand">
+            <i class="fas fa-cube"></i>
+            <span class="brand-text">Digital Twin</span>
+        </div>
+        <button class="sidebar-toggle" id="sidebar-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+    
+    <div class="sidebar-menu">
+        <ul class="menu-list">
+            <li class="menu-item">
+                <a href="/dashboard" class="menu-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="/things" class="menu-link {% if request.endpoint == 'things_list' %}active{% endif %}">
+                    <i class="fas fa-cubes"></i>
+                    <span class="menu-text">Things</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="/create-thing" class="menu-link {% if request.endpoint == 'create_thing' %}active{% endif %}">
+                    <i class="fas fa-plus"></i>
+                    <span class="menu-text">Create Thing</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>

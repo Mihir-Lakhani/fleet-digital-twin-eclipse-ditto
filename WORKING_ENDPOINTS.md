@@ -7,7 +7,7 @@ This file contains all the working endpoints for your Digital Twin platform. Cli
 
 ### **Digital Twin API (Enhanced Flask Proxy)**
 - **Main API Base**: [http://localhost:5000](http://localhost:5000)
-- **Platform Health**: [http://localhost:5000/](http://localhost:5000/)
+- **Platform Health**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
 - **Service Connections**: [http://localhost:5000/test-connections](http://localhost:5000/test-connections)
 - **API Documentation**: [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
 - **API Status**: [http://localhost:5000/api/status](http://localhost:5000/api/status)

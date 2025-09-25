@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}{% if thing %}Edit Thing{% else %}Create Thing{% endif %} - Digital Twin Platform{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <!-- Form Header -->
+    <section class="form-header">
+        <div class="form-title">
+            <h2>{% if thing %}Edit Thing{% else %}Create New Thing{% endif %}</h2>
+            <p class="form-subtitle">
+                {% if thing %}
+                    Update the properties and features of your digital thing
+                {% else %}
+                    Create a new digital twin with custom properties and features
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="form-actions">
+            <a href="/things" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Things
+            </a>
+        </div>
+    </section>
+
+    <!-- Thing Form -->
+    <section class="form-section">
+        <form id="thing-form" class="thing-form" novalidate>
+            <!-- Basic Information -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h3>Basic Information</h3>
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="thingId" class="form-label required">Thing ID</label>
+                        <input 
+                            type="text" 
+                            id="thingId" 
+                            name="thingId" 
+                            class="form-input" 
+                            placeholder="e.g., vehicle:001, sensor:temperature:01"
+                            {% if thing %}value="{{ thing.thingId }}" readonly{% endif %}
+                            required
+                            aria-describedby="thingId-help thingId-error"
+                            autocomplete="off"
+                        >
+                        <div class="form-help" id="thingId-help">
+                            Unique identifier for this thing. Use namespace:id format.
+                        </div>
+                        <div class="form-error" id="thingId-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="thingType" class="form-label">Thing Type</label>
+                        <select id="thingType" name="thingType" class="form-select" aria-describedby="thingType-error">
+                            <option value="">Select Type</option>
+                            <option value="vehicle">Vehicle</option>
+                            <option value="sensor">Sensor</option>
+                            <option value="device">Device</option>
+                            <option value="equipment">Equipment</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <div class="form-error" id="thingType-error"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attributes -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h3>Attributes</h3>
+                    <i class="fas fa-tags"></i>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="manufacturer" class="form-label">Manufacturer</label>
+                        <input 
+                            type="text" 
+                            id="manufacturer" 
+                            name="manufacturer" 
+                            class="form-input" 
+                            placeholder="e.g., Tesla, Bosch, Generic Corp"
+                        >
+                        <div class="form-error" id="manufacturer-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="model" class="form-label">Model</label>
+                        <input 
+                            type="text" 
+                            id="model" 
+                            name="model" 
+                            class="form-input" 
+                            placeholder="e.g., Model S, DHT22, GenericDevice v1.0"
+                        >
+                        <div class="form-error" id="model-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="serialNumber" class="form-label">Serial Number</label>
+                        <input 
+                            type="text" 
+                            id="serialNumber" 
+                            name="serialNumber" 
+                            class="form-input" 
+                            placeholder="e.g., SN123456789"
+                        >
+                        <div class="form-error" id="serialNumber-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="location" class="form-label">Location</label>
+                        <input 
+                            type="text" 
+                            id="location" 
+                            name="location" 
+                            class="form-input" 
+                            placeholder="e.g., Factory Floor 1, Warehouse A"
+                        >
+                        <div class="form-error" id="location-error"></div>
+                    </div>
+                </div>
+                
+                <!-- Custom Attributes -->
+                <div class="custom-attributes-section">
+                    <div class="section-header">
+                        <h4>Custom Attributes</h4>
+                        <button type="button" class="btn btn-sm btn-primary" id="add-attribute">
+                            <i class="fas fa-plus"></i>
+                            Add Attribute
+                        </button>
+                    </div>
+                    
+                    <div class="custom-attributes-list" id="custom-attributes-list">
+                        <!-- Custom attributes will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h3>Features</h3>
+                    <i class="fas fa-cogs"></i>
+                </div>
+                
+                <div class="features-section">
+                    <div class="section-help">
+                        Features define the capabilities and properties of your digital thing. 
+                        Each feature can have properties and desired properties.
+                    </div>
+                    
+                    <div class="section-header">
+                        <h4>Thing Features</h4>
+                        <button type="button" class="btn btn-sm btn-primary" id="add-feature">
+                            <i class="fas fa-plus"></i>
+                            Add Feature
+                        </button>
+                    </div>
+                    
+                    <div class="features-list" id="features-list">
+                        <!-- Features will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Definition -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h3>Definition (Optional)</h3>
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="definition" class="form-label">Thing Definition</label>
+                    <input 
+                        type="url" 
+                        id="definition" 
+                        name="definition" 
+                        class="form-input" 
+                        placeholder="https://example.com/thing-definitions/vehicle.json"
+                    >
+                    <div class="form-help">
+                        URL reference to a thing model definition (WoT Thing Description or similar)
+                    </div>
+                    <div class="form-error" id="definition-error"></div>
+                </div>
+            </div>
+
+            <!-- Policy ID -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h3>Access Policy (Optional)</h3>
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="policyId" class="form-label">Policy ID</label>
+                    <input 
+                        type="text" 
+                        id="policyId" 
+                        name="policyId" 
+                        class="form-input" 
+                        placeholder="e.g., my.namespace:policy"
+                    >
+                    <div class="form-help">
+                        Reference to an existing policy that defines access permissions for this thing
+                    </div>
+                    <div class="form-error" id="policyId-error"></div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions-bar">
+                <button type="submit" class="btn btn-primary btn-lg" id="submit-button">
+                    <i class="fas fa-save"></i>
+                    {% if thing %}Update Thing{% else %}Create Thing{% endif %}
+                </button>
+                
+                <button type="button" class="btn btn-secondary btn-lg" id="preview-json">
+                    <i class="fas fa-eye"></i>
+                    Preview JSON
+                </button>
+                
+                <a href="/things" class="btn btn-link">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </section>
+</div>
+
+<!-- JSON Preview Modal -->
+<div class="modal" id="json-preview-modal" role="dialog" aria-labelledby="json-preview-title" aria-hidden="true">
+    <div class="modal-overlay" id="json-preview-overlay"></div>
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h3 id="json-preview-title">Thing JSON Preview</h3>
+            <button class="btn btn-icon modal-close" id="json-preview-close" aria-label="Close modal">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="json-preview-container">
+                <div class="json-preview-toolbar">
+                    <button class="btn btn-sm btn-secondary" id="copy-json">
+                        <i class="fas fa-copy"></i>
+                        Copy JSON
+                    </button>
+                    <button class="btn btn-sm btn-secondary" id="format-json">
+                        <i class="fas fa-code"></i>
+                        Format
+                    </button>
+                </div>
+                <pre class="json-preview" id="json-preview-content"></pre>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="json-preview-close-footer">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Attribute Template -->
+<template id="attribute-template">
+    <div class="custom-attribute-item">
+        <div class="attribute-inputs">
+            <input type="text" class="form-input attribute-key" placeholder="Attribute name">
+            <input type="text" class="form-input attribute-value" placeholder="Attribute value">
+            <button type="button" class="btn btn-icon btn-danger remove-attribute" aria-label="Remove attribute">
+                <i class="fas fa-trash" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+<!-- Feature Template -->
+<template id="feature-template">
+    <div class="feature-item">
+        <div class="feature-header">
+            <input type="text" class="form-input feature-id" placeholder="Feature ID (e.g., temperature, location)">
+            <button type="button" class="btn btn-icon btn-danger remove-feature" aria-label="Remove feature">
+                <i class="fas fa-trash" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="feature-content">
+            <div class="feature-properties">
+                <h5>Properties</h5>
+                <div class="properties-list">
+                    <!-- Properties will be added here -->
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary add-property">
+                    <i class="fas fa-plus"></i>
+                    Add Property
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Property Template -->
+<template id="property-template">
+    <div class="property-item">
+        <div class="property-inputs">
+            <input type="text" class="form-input property-key" placeholder="Property name">
+            <select class="form-select property-type">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="boolean">Boolean</option>
+                <option value="object">Object</option>
+                <option value="array">Array</option>
+            </select>
+            <input type="text" class="form-input property-value" placeholder="Property value">
+            <button type="button" class="btn btn-icon btn-danger remove-property" aria-label="Remove property">
+                <i class="fas fa-trash" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/thing-form-manager.js') }}"></script>
+{% if thing %}
+<script>
+    // Pass thing data to the initialization script
+    window.thingFormData = {{ thing | tojson }};
+</script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/thing-form-init.js') }}"></script>
+{% endblock %}
