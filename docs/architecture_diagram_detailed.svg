@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="1000" viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; }
+      .small-label { font-family: Arial, sans-serif; font-size: 10px; }
+      .port-label { font-family: Arial, sans-serif; font-size: 9px; fill: #666; }
+      .protocol-label { font-family: Arial, sans-serif; font-size: 8px; fill: #333; font-weight: bold; }
+      
+      /* Component styles */
+      .device { fill: #FF6B6B; stroke: #E74C3C; stroke-width: 2; }
+      .kubernetes { fill: #E8F4FD; stroke: #326CE5; stroke-width: 3; }
+      .pod { fill: #F0F8FF; stroke: #4169E1; stroke-width: 2; }
+      .service { fill: #90EE90; stroke: #228B22; stroke-width: 2; }
+      .database { fill: #FFE4B5; stroke: #DAA520; stroke-width: 2; }
+      .ui { fill: #DDA0DD; stroke: #9370DB; stroke-width: 2; }
+      .network { fill: #B0E0E6; stroke: #4682B4; stroke-width: 2; }
+      .ingress { fill: #FFA07A; stroke: #FF4500; stroke-width: 2; }
+      
+      /* Connection lines */
+      .mqtt-line { stroke: #FF8C00; stroke-width: 3; stroke-dasharray: 5,5; }
+      .http-line { stroke: #32CD32; stroke-width: 2; }
+      .tcp-line { stroke: #4169E1; stroke-width: 2; }
+      .websocket-line { stroke: #8A2BE2; stroke-width: 2; stroke-dasharray: 3,3; }
+      .cluster-line { stroke: #FF69B4; stroke-width: 2; stroke-dasharray: 8,4; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="1000" fill="#F8F9FA"/>
+
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" class="title">Digital Twin IoT Platform - Kubernetes Architecture</text>
+  <text x="700" y="55" text-anchor="middle" class="subtitle">Eclipse Ditto | MongoDB | MQTT | Docker | K8s</text>
+
+  <!-- Legend -->
+  <g transform="translate(20, 80)">
+    <text x="0" y="0" class="subtitle">Legend:</text>
+    <rect x="0" y="10" width="15" height="15" class="device"/>
+    <text x="20" y="22" class="small-label">IoT Devices</text>
+    <rect x="100" y="10" width="15" height="15" class="kubernetes"/>
+    <text x="120" y="22" class="small-label">Kubernetes</text>
+    <rect x="200" y="10" width="15" height="15" class="service"/>
+    <text x="220" y="22" class="small-label">Services</text>
+    <rect x="280" y="10" width="15" height="15" class="database"/>
+    <text x="300" y="22" class="small-label">Databases</text>
+    <rect x="370" y="10" width="15" height="15" class="ui"/>
+    <text x="390" y="22" class="small-label">UI/Frontend</text>
+    
+    <line x1="450" y1="17" x2="480" y2="17" class="mqtt-line"/>
+    <text x="485" y="22" class="small-label">MQTT</text>
+    <line x1="520" y1="17" x2="550" y2="17" class="http-line"/>
+    <text x="555" y="22" class="small-label">HTTP/REST</text>
+    <line x1="620" y1="17" x2="650" y2="17" class="websocket-line"/>
+    <text x="655" y="22" class="small-label">WebSocket</text>
+  </g>
+
+  <!-- IoT Device Layer -->
+  <g transform="translate(50, 120)">
+    <text x="0" y="0" class="subtitle">IoT Device Layer</text>
+    
+    <!-- ESP32 Device 1 -->
+    <g transform="translate(0, 20)">
+      <rect x="0" y="0" width="120" height="80" rx="10" class="device"/>
+      <text x="60" y="20" text-anchor="middle" class="label">ESP32 Device #1</text>
+      <text x="60" y="35" text-anchor="middle" class="small-label">Temperature Sensor</text>
+      <text x="60" y="50" text-anchor="middle" class="small-label">IP: 192.168.1.101</text>
+      <text x="60" y="65" text-anchor="middle" class="small-label">WiFi: 2.4GHz</text>
+    </g>
+
+    <!-- ESP32 Device 2 -->
+    <g transform="translate(140, 20)">
+      <rect x="0" y="0" width="120" height="80" rx="10" class="device"/>
+      <text x="60" y="20" text-anchor="middle" class="label">ESP32 Device #2</text>
+      <text x="60" y="35" text-anchor="middle" class="small-label">Humidity Sensor</text>
+      <text x="60" y="50" text-anchor="middle" class="small-label">IP: 192.168.1.102</text>
+      <text x="60" y="65" text-anchor="middle" class="small-label">WiFi: 2.4GHz</text>
+    </g>
+
+    <!-- ESP32 Device 3 -->
+    <g transform="translate(280, 20)">
+      <rect x="0" y="0" width="120" height="80" rx="10" class="device"/>
+      <text x="60" y="20" text-anchor="middle" class="label">ESP32 Device #3</text>
+      <text x="60" y="35" text-anchor="middle" class="small-label">Motion Detector</text>
+      <text x="60" y="50" text-anchor="middle" class="small-label">IP: 192.168.1.103</text>
+      <text x="60" y="65" text-anchor="middle" class="small-label">WiFi: 2.4GHz</text>
+    </g>
+  </g>
+
+  <!-- Network Layer -->
+  <g transform="translate(50, 250)">
+    <rect x="0" y="0" width="400" height="60" rx="5" class="network"/>
+    <text x="200" y="20" text-anchor="middle" class="subtitle">Network Infrastructure</text>
+    <text x="50" y="40" class="small-label">WiFi Router: 192.168.1.1</text>
+    <text x="200" y="40" class="small-label">Internet Gateway</text>
+    <text x="320" y="40" class="small-label">Firewall: ports 1883, 8080-8090</text>
+  </g>
+
+  <!-- Kubernetes Cluster -->
+  <g transform="translate(500, 120)">
+    <rect x="0" y="0" width="850" height="800" rx="15" class="kubernetes"/>
+    <text x="425" y="25" text-anchor="middle" class="title">Kubernetes Cluster (K8s)</text>
+    <text x="425" y="45" text-anchor="middle" class="subtitle">Namespace: digital-twin</text>
+
+    <!-- Ingress Controller -->
+    <g transform="translate(20, 60)">
+      <rect x="0" y="0" width="200" height="60" rx="5" class="ingress"/>
+      <text x="100" y="20" text-anchor="middle" class="subtitle">Ingress Controller</text>
+      <text x="100" y="35" text-anchor="middle" class="small-label">NGINX Ingress</text>
+      <text x="100" y="50" text-anchor="middle" class="port-label">External: 80, 443</text>
+    </g>
+
+    <!-- Load Balancer -->
+    <g transform="translate(250, 60)">
+      <rect x="0" y="0" width="150" height="60" rx="5" class="network"/>
+      <text x="75" y="20" text-anchor="middle" class="subtitle">Load Balancer</text>
+      <text x="75" y="35" text-anchor="middle" class="small-label">MetalLB</text>
+      <text x="75" y="50" text-anchor="middle" class="port-label">VIP: 10.0.0.100</text>
+    </g>
+
+    <!-- Master Node -->
+    <g transform="translate(20, 140)">
+      <rect x="0" y="0" width="380" height="180" rx="10" fill="#E6F3FF" stroke="#326CE5" stroke-width="2"/>
+      <text x="190" y="20" text-anchor="middle" class="subtitle">Master Node (k8s-master)</text>
+      <text x="190" y="35" text-anchor="middle" class="small-label">IP: 10.0.0.10</text>
+
+      <!-- API Gateway Pod -->
+      <g transform="translate(10, 50)">
+        <rect x="0" y="0" width="110" height="110" rx="5" class="pod"/>
+        <text x="55" y="15" text-anchor="middle" class="label">API Gateway</text>
+        <text x="55" y="30" text-anchor="middle" class="small-label">ditto-gateway</text>
+        <text x="55" y="45" text-anchor="middle" class="port-label">Container: 8080</text>
+        <text x="55" y="60" text-anchor="middle" class="port-label">Service: 8080</text>
+        <text x="55" y="75" text-anchor="middle" class="small-label">Replicas: 3</text>
+        <text x="55" y="90" text-anchor="middle" class="small-label">CPU: 500m</text>
+        <text x="55" y="105" text-anchor="middle" class="small-label">RAM: 1Gi</text>
+      </g>
+
+      <!-- Ditto Things Pod -->
+      <g transform="translate(130, 50)">
+        <rect x="0" y="0" width="110" height="110" rx="5" class="pod"/>
+        <text x="55" y="15" text-anchor="middle" class="label">Ditto Things</text>
+        <text x="55" y="30" text-anchor="middle" class="small-label">ditto-things</text>
+        <text x="55" y="45" text-anchor="middle" class="port-label">Container: 8081</text>
+        <text x="55" y="60" text-anchor="middle" class="port-label">Service: 8081</text>
+        <text x="55" y="75" text-anchor="middle" class="small-label">Replicas: 2</text>
+        <text x="55" y="90" text-anchor="middle" class="small-label">CPU: 300m</text>
+        <text x="55" y="105" text-anchor="middle" class="small-label">RAM: 768Mi</text>
+      </g>
+
+      <!-- Ditto Policies Pod -->
+      <g transform="translate(250, 50)">
+        <rect x="0" y="0" width="110" height="110" rx="5" class="pod"/>
+        <text x="55" y="15" text-anchor="middle" class="label">Ditto Policies</text>
+        <text x="55" y="30" text-anchor="middle" class="small-label">ditto-policies</text>
+        <text x="55" y="45" text-anchor="middle" class="port-label">Container: 8082</text>
+        <text x="55" y="60" text-anchor="middle" class="port-label">Service: 8082</text>
+        <text x="55" y="75" text-anchor="middle" class="small-label">Replicas: 2</text>
+        <text x="55" y="90" text-anchor="middle" class="small-label">CPU: 300m</text>
+        <text x="55" y="105" text-anchor="middle" class="small-label">RAM: 512Mi</text>
+      </g>
+    </g>
+
+    <!-- Worker Node 1 -->
+    <g transform="translate(420, 140)">
+      <rect x="0" y="0" width="200" height="280" rx="10" fill="#F0F8FF" stroke="#4169E1" stroke-width="2"/>
+      <text x="100" y="20" text-anchor="middle" class="subtitle">Worker Node 1</text>
+      <text x="100" y="35" text-anchor="middle" class="small-label">IP: 10.0.0.11</text>
+
+      <!-- MQTT Broker Pod -->
+      <g transform="translate(10, 50)">
+        <rect x="0" y="0" width="180" height="100" rx="5" class="service"/>
+        <text x="90" y="20" text-anchor="middle" class="label">MQTT Broker</text>
+        <text x="90" y="35" text-anchor="middle" class="small-label">Eclipse Mosquitto</text>
+        <text x="90" y="50" text-anchor="middle" class="port-label">MQTT: 1883</text>
+        <text x="90" y="65" text-anchor="middle" class="port-label">WebSocket: 9001</text>
+        <text x="90" y="80" text-anchor="middle" class="small-label">Persistent Volume</text>
+        <text x="90" y="95" text-anchor="middle" class="small-label">Config: mosquitto.conf</text>
+      </g>
+
+      <!-- Connectivity Service Pod -->
+      <g transform="translate(10, 160)">
+        <rect x="0" y="0" width="180" height="100" rx="5" class="service"/>
+        <text x="90" y="20" text-anchor="middle" class="label">Connectivity</text>
+        <text x="90" y="35" text-anchor="middle" class="small-label">ditto-connectivity</text>
+        <text x="90" y="50" text-anchor="middle" class="port-label">Container: 8083</text>
+        <text x="90" y="65" text-anchor="middle" class="port-label">Service: 8083</text>
+        <text x="90" y="80" text-anchor="middle" class="small-label">MQTT Client</text>
+        <text x="90" y="95" text-anchor="middle" class="small-label">Protocol Adapter</text>
+      </g>
+    </g>
+
+    <!-- Worker Node 2 -->
+    <g transform="translate(640, 140)">
+      <rect x="0" y="0" width="190" height="280" rx="10" fill="#F0F8FF" stroke="#4169E1" stroke-width="2"/>
+      <text x="95" y="20" text-anchor="middle" class="subtitle">Worker Node 2</text>
+      <text x="95" y="35" text-anchor="middle" class="small-label">IP: 10.0.0.12</text>
+
+      <!-- MongoDB StatefulSet -->
+      <g transform="translate(10, 50)">
+        <rect x="0" y="0" width="170" height="120" rx="5" class="database"/>
+        <text x="85" y="20" text-anchor="middle" class="label">MongoDB</text>
+        <text x="85" y="35" text-anchor="middle" class="small-label">StatefulSet</text>
+        <text x="85" y="50" text-anchor="middle" class="port-label">Port: 27017</text>
+        <text x="85" y="65" text-anchor="middle" class="small-label">Persistent Volume</text>
+        <text x="85" y="80" text-anchor="middle" class="small-label">Storage: 50Gi</text>
+        <text x="85" y="95" text-anchor="middle" class="small-label">DB: digitaltwindb</text>
+        <text x="85" y="110" text-anchor="middle" class="small-label">Replica Set</text>
+      </g>
+
+      <!-- Backend API -->
+      <g transform="translate(10, 180)">
+        <rect x="0" y="0" width="170" height="80" rx="5" class="service"/>
+        <text x="85" y="20" text-anchor="middle" class="label">Backend API</text>
+        <text x="85" y="35" text-anchor="middle" class="small-label">Flask App</text>
+        <text x="85" y="50" text-anchor="middle" class="port-label">Port: 5000</text>
+        <text x="85" y="65" text-anchor="middle" class="small-label">Python 3.13</text>
+      </g>
+    </g>
+
+    <!-- Frontend Services -->
+    <g transform="translate(20, 440)">
+      <text x="0" y="0" class="subtitle">Frontend Layer</text>
+
+      <!-- Dashboard UI -->
+      <g transform="translate(0, 20)">
+        <rect x="0" y="0" width="150" height="100" rx="5" class="ui"/>
+        <text x="75" y="20" text-anchor="middle" class="label">Dashboard UI</text>
+        <text x="75" y="35" text-anchor="middle" class="small-label">React 18</text>
+        <text x="75" y="50" text-anchor="middle" class="port-label">Port: 3000</text>
+        <text x="75" y="65" text-anchor="middle" class="small-label">Material-UI v5</text>
+        <text x="75" y="80" text-anchor="middle" class="small-label">TypeScript</text>
+        <text x="75" y="95" text-anchor="middle" class="small-label">Nginx Proxy</text>
+      </g>
+
+      <!-- Swagger UI -->
+      <g transform="translate(170, 20)">
+        <rect x="0" y="0" width="150" height="100" rx="5" class="ui"/>
+        <text x="75" y="20" text-anchor="middle" class="label">Swagger UI</text>
+        <text x="75" y="35" text-anchor="middle" class="small-label">API Documentation</text>
+        <text x="75" y="50" text-anchor="middle" class="port-label">Port: 8090</text>
+        <text x="75" y="65" text-anchor="middle" class="small-label">OpenAPI 3.0</text>
+        <text x="75" y="80" text-anchor="middle" class="small-label">Interactive Testing</text>
+      </g>
+
+      <!-- Grafana Monitoring -->
+      <g transform="translate(340, 20)">
+        <rect x="0" y="0" width="150" height="100" rx="5" class="ui"/>
+        <text x="75" y="20" text-anchor="middle" class="label">Grafana</text>
+        <text x="75" y="35" text-anchor="middle" class="small-label">Monitoring</text>
+        <text x="75" y="50" text-anchor="middle" class="port-label">Port: 3001</text>
+        <text x="75" y="65" text-anchor="middle" class="small-label">Dashboards</text>
+        <text x="75" y="80" text-anchor="middle" class="small-label">Alerts</text>
+      </g>
+    </g>
+
+    <!-- DNS and Service Discovery -->
+    <g transform="translate(20, 580)">
+      <rect x="0" y="0" width="470" height="80" rx="5" class="network"/>
+      <text x="235" y="20" text-anchor="middle" class="subtitle">Kubernetes DNS & Service Discovery</text>
+      <text x="50" y="40" class="small-label">CoreDNS: ditto-gateway.digital-twin.svc.cluster.local</text>
+      <text x="50" y="55" class="small-label">Service Discovery: etcd backend</text>
+      <text x="50" y="70" class="small-label">Network Policy: Allow inter-pod communication</text>
+    </g>
+
+    <!-- Akka Cluster Formation -->
+    <g transform="translate(520, 580)">
+      <rect x="0" y="0" width="300" height="80" rx="5" fill="#FFE4E1" stroke="#DC143C" stroke-width="2"/>
+      <text x="150" y="20" text-anchor="middle" class="subtitle">Akka Cluster Formation</text>
+      <text x="150" y="40" text-anchor="middle" class="small-label">Cluster Seed Nodes: ditto-gateway:2551</text>
+      <text x="150" y="55" text-anchor="middle" class="small-label">Remote Actors: TCP 2552</text>
+      <text x="150" y="70" text-anchor="middle" class="small-label">Cluster Management: HTTP 2553</text>
+    </g>
+
+    <!-- Persistent Volumes -->
+    <g transform="translate(20, 680)">
+      <rect x="0" y="0" width="800" height="60" rx="5" fill="#F5F5DC" stroke="#D2691E" stroke-width="2"/>
+      <text x="400" y="20" text-anchor="middle" class="subtitle">Persistent Storage</text>
+      <text x="100" y="40" class="small-label">MongoDB PVC: 50Gi (ReadWriteOnce)</text>
+      <text x="350" y="40" class="small-label">MQTT Config PVC: 1Gi (ReadWriteMany)</text>
+      <text x="600" y="40" class="small-label">Logs PVC: 10Gi (ReadWriteMany)</text>
+    </g>
+  </g>
+
+  <!-- External Access -->
+  <g transform="translate(1100, 350)">
+    <text x="0" y="0" class="subtitle">External Access</text>
+    
+    <g transform="translate(0, 20)">
+      <rect x="0" y="0" width="140" height="60" rx="5" class="network"/>
+      <text x="70" y="20" text-anchor="middle" class="label">Public Internet</text>
+      <text x="70" y="35" text-anchor="middle" class="small-label">HTTPS: 443</text>
+      <text x="70" y="50" text-anchor="middle" class="small-label">HTTP: 80</text>
+    </g>
+
+    <g transform="translate(0, 100)">
+      <rect x="0" y="0" width="140" height="60" rx="5" class="ui"/>
+      <text x="70" y="20" text-anchor="middle" class="label">Mobile App</text>
+      <text x="70" y="35" text-anchor="middle" class="small-label">Flutter/React</text>
+      <text x="70" y="50" text-anchor="middle" class="small-label">WebSocket API</text>
+    </g>
+
+    <g transform="translate(0, 180)">
+      <rect x="0" y="0" width="140" height="60" rx="5" class="ui"/>
+      <text x="70" y="20" text-anchor="middle" class="label">3rd Party Apps</text>
+      <text x="70" y="35" text-anchor="middle" class="small-label">REST API</text>
+      <text x="70" y="50" text-anchor="middle" class="small-label">OAuth 2.0</text>
+    </g>
+  </g>
+
+  <!-- Connection Lines and Data Flow -->
+  
+  <!-- ESP32 to Network -->
+  <line x1="110" y1="220" x2="250" y2="250" class="mqtt-line"/>
+  <text x="170" y="240" class="protocol-label">WiFi</text>
+  
+  <line x1="200" y1="220" x2="250" y2="250" class="mqtt-line"/>
+  <line x1="340" y1="220" x2="300" y2="250" class="mqtt-line"/>
+
+  <!-- Network to Kubernetes -->
+  <line x1="450" y1="280" x2="500" y2="280" class="tcp-line"/>
+  <text x="470" y="275" class="protocol-label">Ingress</text>
+
+  <!-- Ingress to Load Balancer -->
+  <line x1="720" y1="200" x2="770" y2="200" class="http-line"/>
+  <text x="740" y="195" class="protocol-label">HTTP</text>
+
+  <!-- Load Balancer to API Gateway -->
+  <line x1="770" y1="200" x2="620" y2="230" class="http-line"/>
+  <text x="690" y="220" class="protocol-label">8080</text>
+
+  <!-- API Gateway to Things Service -->
+  <line x1="575" y1="280" x2="685" y2="280" class="http-line"/>
+  <text x="625" y="275" class="protocol-label">REST</text>
+
+  <!-- API Gateway to Policies Service -->
+  <line x1="620" y1="280" x2="750" y2="280" class="http-line"/>
+  <text x="680" y="275" class="protocol-label">8082</text>
+
+  <!-- MQTT Broker to Connectivity -->
+  <line x1="1010" y1="350" x2="1010" y2="400" class="mqtt-line"/>
+  <text x="1020" y="380" class="protocol-label">1883</text>
+
+  <!-- Connectivity to Things Service -->
+  <line x1="940" y1="400" x2="740" y2="350" class="http-line"/>
+  <text x="840" y="380" class="protocol-label">8081</text>
+
+  <!-- Things Service to MongoDB -->
+  <line x1="740" y1="350" x2="825" y2="380" class="tcp-line"/>
+  <text x="780" y="370" class="protocol-label">27017</text>
+
+  <!-- Backend API to MongoDB -->
+  <line x1="825" y1="480" x2="825" y2="440" class="tcp-line"/>
+  <text x="835" y="460" class="protocol-label">MongoDB</text>
+
+  <!-- Frontend to Backend API -->
+  <line x1="615" y1="560" x2="825" y2="520" class="http-line"/>
+  <text x="720" y="545" class="protocol-label">5000</text>
+
+  <!-- External to Ingress -->
+  <line x1="1100" y1="410" x2="720" y2="200" class="http-line"/>
+  <text x="900" y="300" class="protocol-label">HTTPS/443</text>
+
+  <!-- Mobile App to API -->
+  <line x1="1100" y1="470" x2="620" y2="250" class="websocket-line"/>
+  <text x="860" y="360" class="protocol-label">WebSocket</text>
+
+  <!-- Akka Cluster Lines -->
+  <line x1="575" y1="280" x2="685" y2="280" class="cluster-line"/>
+  <line x1="685" y1="280" x2="750" y2="280" class="cluster-line"/>
+  <line x1="1010" y1="400" x2="740" y2="350" class="cluster-line"/>
+
+  <!-- Port Labels on key connections -->
+  <g transform="translate(50, 350)">
+    <text x="0" y="0" class="subtitle">Port Mappings:</text>
+    <text x="0" y="20" class="port-label">ESP32 → MQTT: WiFi → 1883/TCP</text>
+    <text x="0" y="35" class="port-label">Frontend → Backend: 3000 → 5000/HTTP</text>
+    <text x="0" y="50" class="port-label">API Gateway: 8080/HTTP (External)</text>
+    <text x="0" y="65" class="port-label">MQTT Broker: 1883/TCP, 9001/WebSocket</text>
+    <text x="0" y="80" class="port-label">MongoDB: 27017/TCP (Internal)</text>
+    <text x="0" y="95" class="port-label">Akka Cluster: 2551-2553/TCP</text>
+  </g>
+
+  <!-- Security Annotations -->
+  <g transform="translate(50, 470)">
+    <rect x="0" y="0" width="300" height="100" rx="5" fill="#FFE4E4" stroke="#B22222" stroke-width="2"/>
+    <text x="150" y="20" text-anchor="middle" class="subtitle">Security & Network Policies</text>
+    <text x="10" y="40" class="small-label">• TLS/SSL termination at Ingress</text>
+    <text x="10" y="55" class="small-label">• Network Policies: Deny all, Allow specific</text>
+    <text x="10" y="70" class="small-label">• RBAC: Service accounts with least privilege</text>
+    <text x="10" y="85" class="small-label">• Secrets: K8s secrets for DB credentials</text>
+  </g>
+
+  <!-- Data Flow Summary -->
+  <g transform="translate(50, 590)">
+    <rect x="0" y="0" width="400" height="120" rx="5" fill="#E8F8E8" stroke="#006400" stroke-width="2"/>
+    <text x="200" y="20" text-anchor="middle" class="subtitle">Data Flow Summary</text>
+    <text x="10" y="40" class="small-label">1. ESP32 sensors → WiFi → MQTT Broker (1883)</text>
+    <text x="10" y="55" class="small-label">2. MQTT → Connectivity Service → Ditto Things</text>
+    <text x="10" y="70" class="small-label">3. Ditto Things → MongoDB (Persistence)</text>
+    <text x="10" y="85" class="small-label">4. API Gateway → REST APIs → Frontend</text>
+    <text x="10" y="100" class="small-label">5. Dashboard UI → Real-time WebSocket updates</text>
+  </g>
+
+  <!-- Performance Metrics -->
+  <g transform="translate(50, 730)">
+    <rect x="0" y="0" width="400" height="80" rx="5" fill="#F0F8FF" stroke="#4169E1" stroke-width="2"/>
+    <text x="200" y="20" text-anchor="middle" class="subtitle">Performance & Scaling</text>
+    <text x="10" y="40" class="small-label">• Auto-scaling: HPA based on CPU/Memory (50-200%)</text>
+    <text x="10" y="55" class="small-label">• Load Balancing: Round-robin across replicas</text>
+    <text x="10" y="70" class="small-label">• Resource Limits: CPU 500m-2, Memory 512Mi-4Gi</text>
+  </g>
+
+</svg>

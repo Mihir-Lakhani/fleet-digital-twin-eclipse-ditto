@@ -1,12 +1,12 @@
-# Fleet Digital Twin with Eclipse Ditto
+# Fleet Digital Twin API with Eclipse Ditto
 
-A comprehensive digital twin solution for fleet management using Eclipse Ditto, MQTT, and MongoDB.
+A comprehensive digital twin API solution for fleet management using Eclipse Ditto, MQTT, and MongoDB. This is a pure API-based implementation without web UI components.
 
 ## 🏗️ Project Structure
 
 ```
 ├── src/                    # Source code files
-│   ├── app.py             # Flask web application entry point
+│   ├── app.py             # Flask API application entry point
 │   ├── communication.py   # IoT device communication logic
 │   └── device_model.py    # Digital twin device classes/models
 ├── config/                # Configuration files
@@ -76,40 +76,113 @@ If you prefer manual setup:
 
 ## 🔧 Services
 
-The application consists of the following services:
+The application consists of the following backend services:
 
 | Service | Description | Port | Status |
 |---------|-------------|------|--------|
-| **Digital Twin App** | Flask web application | 5000 | ✅ Running |
-| **Swagger UI** | Interactive API documentation | 8082 | ✅ Available |
-| **Ditto UI** | Web interface for digital twins | 8083 | ✅ Available |
+| **Digital Twin API** | Flask REST API application | 5000 | ✅ Running |
 | **MongoDB** | Database for data storage | 27017 | ✅ Running |
 | **MQTT Broker** | Eclipse Mosquitto message broker | 1883, 9001 | ✅ Running |
 | **Ditto Gateway** | Eclipse Ditto API gateway | 8080 | ✅ Running |
 | **Ditto Policies** | Policy management service | - | ✅ Running |
 | **Ditto Things** | Thing management service | - | ✅ Running |
 
-## 🌐 Endpoints
+## 🌐 API Endpoints
 
-### Web Application
-- **Main App**: http://localhost:5000
-- **Health Check**: http://localhost:5000/
+### Core API
+- **API Root**: http://localhost:5000/
+- **Health Check**: http://localhost:5000/api/health
 - **Connection Test**: http://localhost:5000/test-connections
-- **CORS Test**: http://localhost:5000/api/test ⭐ *New*
-- **API Status**: http://localhost:5000/api/status ⭐ *New*
+- **API Status**: http://localhost:5000/api/status
 
-### User Interfaces  
-- **Swagger UI**: http://localhost:8082 - Interactive API documentation
-- **Ditto UI**: http://localhost:8083 - Web interface for managing digital twins
+### MongoDB Thing Management API
+- **List Things**: `GET http://localhost:5000/mongodb/things`
+- **Create Thing**: `POST http://localhost:5000/mongodb/things`
+- **Get Thing**: `GET http://localhost:5000/mongodb/things/{thingId}`
+- **Update Thing**: `PUT http://localhost:5000/mongodb/things/{thingId}`
+- **Patch Thing**: `PATCH http://localhost:5000/mongodb/things/{thingId}`
+- **Delete Thing**: `DELETE http://localhost:5000/mongodb/things/{thingId}`
 
 ### External Services
 - **MongoDB**: localhost:27017
 - **MQTT Broker**: localhost:1883
 - **Eclipse Ditto API**: http://localhost:8080/api/2
 
+## 🛠️ API Usage Examples
+
+### PowerShell Examples
+
+**Test API Health:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/api/health" -Method Get
+```
+
+**Test Service Connections:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/test-connections" -Method Get
+```
+
+**Create a Digital Twin:**
+```powershell
+$thing = @{
+    thingId = "vehicle:truck001"
+    attributes = @{
+        manufacturer = "Volvo"
+        model = "FH16"
+        location = @{
+            latitude = 59.3293
+            longitude = 18.0686
+        }
+    }
+}
+
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things" -Method Post -Body ($thing | ConvertTo-Json -Depth 3) -ContentType "application/json"
+```
+
+**List All Things:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things" -Method Get
+```
+
+**Get Specific Thing:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things/vehicle:truck001" -Method Get
+```
+
+**Delete Thing:**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things/vehicle:truck001" -Method Delete
+```
+
+### cURL Examples
+
+**Test API Health:**
+```bash
+curl http://localhost:5000/api/health
+```
+
+**Create a Digital Twin:**
+```bash
+curl -X POST http://localhost:5000/mongodb/things \
+  -H "Content-Type: application/json" \
+  -d '{
+    "thingId": "sensor:temp001",
+    "attributes": {
+      "type": "temperature",
+      "location": "warehouse-a",
+      "unit": "celsius"
+    }
+  }'
+```
+
+**List All Things:**
+```bash
+curl http://localhost:5000/mongodb/things
+```
+
 ## ✅ CORS Support & Cross-Origin Access
 
-**✅ CORS ENABLED**: The Digital Twin application now supports Cross-Origin Resource Sharing (CORS), enabling Swagger UI and Ditto UI to make API calls without "Failed to fetch" errors.
+**✅ CORS ENABLED**: The Digital Twin API supports Cross-Origin Resource Sharing (CORS) for web application integration.
 
 ### CORS Configuration
 - **Flask-CORS**: Enabled for all endpoints with wildcard origins (`*`)
@@ -120,7 +193,7 @@ The application consists of the following services:
 ### Testing CORS
 ```powershell
 # Test CORS-enabled endpoint
-Invoke-WebRequest -Uri "http://localhost:5000/api/test" -Method GET
+Invoke-WebRequest -Uri "http://localhost:5000/api/health" -Method GET
 
 # Response should include: Access-Control-Allow-Origin: *
 ```
@@ -135,25 +208,11 @@ CORS(app, resources={
 })
 ```
 
-### 🔐 UI Service Authentication
+## 🚦 Service Management
 
-**Swagger UI** (Port 8082):
-- No authentication required  
-- Displays comprehensive API documentation for Digital Twin services
-- Interactive testing interface for all endpoints
-- ✅ **CORS ENABLED**: Can now make API calls to localhost:5000 without errors
-
-**Ditto UI** (Port 8083):
-- Default credentials: Username `ditto`, Password `ditto`  
-- Web interface for creating and managing digital twin "things"
-- Real-time monitoring of device states and policies
-- ✅ **Network Access**: Configured to access Ditto Gateway via localhost:8080
-
-### 🚦 Service Management
-
-**Start All Services (including UI services):**
+**Start All Services:**
 ```powershell
-# Full stack with web interfaces
+# Full stack with all backend services
 docker-compose -f docker-compose-final.yaml up -d
 
 # Check service status
@@ -162,8 +221,8 @@ docker-compose -f docker-compose-final.yaml ps
 
 **Start Core Services Only:**
 ```powershell
-# Start without UI services (original configuration)
-docker-compose -f docker-compose-final.yaml up -d mongodb mqtt_broker ditto-policies ditto-things ditto-gateway app
+# Start minimal set (API, MongoDB, MQTT)
+docker-compose -f docker-compose-final.yaml up -d mongodb mqtt_broker app
 ```
 
 **Stop Services:**
@@ -175,154 +234,130 @@ docker-compose -f docker-compose-final.yaml down
 docker-compose -f docker-compose-final.yaml down -v
 ```
 
-**Individual Service Management:**
+**View Logs:**
 ```powershell
-# Start only UI services
-docker-compose -f docker-compose-final.yaml up -d swagger-ui ditto-ui
+# View API logs
+docker-compose -f docker-compose-final.yaml logs -f app
 
-# View logs for specific service
-docker-compose -f docker-compose-final.yaml logs -f swagger-ui
+# View all service logs
+docker-compose -f docker-compose-final.yaml logs -f
 ```
 
-### 🛡️ Security Recommendations
+## 🔍 Monitoring & Debugging
+
+**Check Service Health:**
+```powershell
+# Test all service connections
+Invoke-RestMethod -Uri "http://localhost:5000/test-connections" -Method Get
+```
+
+**MongoDB Direct Access:**
+```bash
+# Connect to MongoDB shell
+docker exec -it mongodb mongosh digitaltwindb
+
+# View things collection
+db.things.find().pretty()
+```
+
+**MQTT Testing:**
+```bash
+# Subscribe to MQTT messages
+docker exec -it mqtt_broker mosquitto_sub -t "sensors/+/data"
+
+# Publish test message
+docker exec -it mqtt_broker mosquitto_pub -t "sensors/test/data" -m '{"temperature": 25.5}'
+```
+
+## 📊 Data Models
+
+### Thing Schema
+```json
+{
+  "thingId": "string (required)",
+  "attributes": {
+    "manufacturer": "string",
+    "model": "string",
+    "location": {
+      "latitude": "number",
+      "longitude": "number"
+    },
+    "custom_field": "any"
+  },
+  "_created": "ISO8601 timestamp",
+  "_modified": "ISO8601 timestamp"
+}
+```
+
+### API Response Format
+```json
+{
+  "success": true,
+  "thingId": "vehicle:truck001",
+  "message": "Thing created successfully",
+  "created": "2025-09-26T10:30:00Z"
+}
+```
+
+## 🛡️ Security Recommendations
 
 **For Development Environment:**
-- Default credentials are used (username: `ditto`, password: `ditto`)
-- UI services are accessible without authentication
+- CORS is open for development ease
 - Use only in isolated development environments
 
 **For Production Deployment:**
-- Change all default passwords in `.env` file
+- Configure specific CORS origins
 - Enable proper authentication on all services
 - Use reverse proxy with SSL/TLS termination
 - Restrict network access with firewall rules
 - Regular security updates for all Docker images
-- Consider disabling UI services in production environments
-
-## 🧪 Testing
-
-### Run Integration Tests
-```bash
-python -m pytest tests/integration_tests.py -v
-```
-
-### Test Service Connections
-```bash
-python scripts/test_connections.py
-```
-
-### Manual Connection Testing
-```bash
-# Test individual services
-python src/communication.py
-```
-
-## 📊 Current Status
-
-✅ **Working Services:**
-- MongoDB: Fully operational
-- MQTT Broker: Fully operational  
-- Flask Application: Fully operational
-- Docker Networking: All containers can communicate
-- Integration Tests: All passing (6/6)
-
-⚠️ **Known Issues:**
-- Eclipse Ditto cluster discovery warnings (services still functional)
-- ~~External connections use localhost, internal use container names~~ ✅ **FIXED with CORS**
-
-## 🔧 Troubleshooting
-
-### CORS "Failed to fetch" Errors ✅ **RESOLVED**
-If you encounter "Failed to fetch" errors in Swagger UI or Ditto UI:
-
-**✅ Solution Applied:**
-- Flask-CORS enabled in `src/app.py`
-- CORS headers (`Access-Control-Allow-Origin: *`) added to all API responses
-- Docker services configured for proper cross-origin access
-
-**Verify CORS is working:**
-```powershell
-# Check for CORS headers in response
-Invoke-WebRequest -Uri "http://localhost:5000/api/test" | Select-Object Headers
-```
-
-### Service Connection Issues
-```powershell
-# Check all services are running
-docker-compose -f docker-compose-final.yaml ps
-
-# View logs for specific service
-docker-compose -f docker-compose-final.yaml logs [service-name]
-
-# Restart specific service
-docker-compose -f docker-compose-final.yaml restart [service-name]
-```
-
-### UI Service Problems
-```powershell
-# Restart UI services only
-docker-compose -f docker-compose-final.yaml restart swagger-ui ditto-ui
-
-# Check UI service health
-Invoke-WebRequest -Uri "http://localhost:8082" | Select-Object StatusCode
-Invoke-WebRequest -Uri "http://localhost:8083" | Select-Object StatusCode
-```
+- Environment variable security management
 
 ## 🔧 Configuration
 
-### Environment Variables (.env)
-```bash
+### Environment Variables
+
+Create a `.env` file in the config directory:
+
+```env
+# API Configuration
+APP_PORT=5000
+FLASK_ENV=development
+
+# Eclipse Ditto Configuration
 ECLIPSE_DITTO_API_URL=http://ditto-gateway:8080/api/2
 ECLIPSE_DITTO_API_KEY=ditto_api
+
+# MongoDB Configuration
+MONGODB_URL=mongodb://mongodb:27017
+DATABASE_NAME=digitaltwindb
+
+# MQTT Configuration
 MQTT_BROKER_URL=tcp://mqtt_broker:1883
 MQTT_BROKER_USER=mqtt_user
 MQTT_BROKER_PASSWORD=mqtt_password
-DATABASE_URL=mongodb://mongodb:27017/digitaltwindb
-APP_PORT=5000
 ```
 
-### Static Configuration (config.yaml)
-```yaml
-service_name: fleet_vehicle_digital_twin
-retry_attempts: 3
-connection_timeout: 5000
-logging_level: INFO
-device_types:
-  sensor: gps
-  actuator: engine_switch
-```
+## 📝 API Documentation
 
-## 🛠️ Development
+For detailed API documentation including request/response schemas, error codes, and additional examples, see:
 
-### Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+- `docs/MONGODB_THING_MANAGEMENT.md` - Complete MongoDB API guide
+- `docs/QUICK_REFERENCE.md` - Quick reference with examples
+- `WORKING_ENDPOINTS.md` - All available endpoints
 
-### Run Tests
-```bash
-pytest tests/ -v
-```
+## 🤝 Contributing
 
-### View Logs
-```bash
-# View all service logs
-docker-compose logs
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-# View specific service logs
-docker logs <container_name>
-```
+## 📄 License
 
-## 📝 Next Steps
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-1. **Implement Device Models**: Add digital twin device classes
-2. **Create API Endpoints**: Build REST APIs for device management
-3. **Add Authentication**: Implement proper authentication for Ditto
-4. **Data Processing**: Add real-time data processing capabilities
-5. **Monitoring**: Add service monitoring and alerting
+---
 
-## 🎉 Success!
-
-Your digital twin infrastructure is now running and ready for development! All core services are operational and communicating properly through the Docker network.
-
-Access your application at: **http://localhost:5000**
+Access your API at: **http://localhost:5000**

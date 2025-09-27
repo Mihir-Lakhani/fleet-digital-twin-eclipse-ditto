@@ -1,0 +1,517 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  MenuItem,
+  Grid,
+  Alert,
+  Chip,
+  IconButton,
+  CircularProgress,
+  Divider,
+  Avatar,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  LocationOn as LocationIcon,
+  Tag as TagIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+  DeviceHub as ThingIcon,
+  Clear as ClearIcon,
+} from '@mui/icons-material';
+import { useSnackbar } from 'notistack';
+
+import { apiService } from '../api';
+import { CreateTwinRequest } from '../types';
+
+const Create: React.FC = () => {
+  const [form, setForm] = useState<CreateTwinRequest>({
+    name: '',
+    type: '',
+    status: 'active',
+    description: '',
+    location: undefined,
+    tags: [],
+  });
+  const [locationInput, setLocationInput] = useState({
+    latitude: '',
+    longitude: '',
+    address: '',
+  });
+  const [tagInput, setTagInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
+
+  const twinTypes = [
+    { value: 'sensor', label: 'Sensor' },
+    { value: 'device', label: 'Device' },
+    { value: 'vehicle', label: 'Vehicle' },
+    { value: 'building', label: 'Building' },
+    { value: 'machine', label: 'Machine' },
+    { value: 'system', label: 'System' },
+  ];
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    if (!form.type.trim()) {
+      newErrors.type = 'Type is required';
+    }
+
+    if (locationInput.latitude && !locationInput.longitude) {
+      newErrors.longitude = 'Longitude is required when latitude is provided';
+    }
+
+    if (locationInput.longitude && !locationInput.latitude) {
+      newErrors.latitude = 'Latitude is required when longitude is provided';
+    }
+
+    if (locationInput.latitude && (isNaN(Number(locationInput.latitude)) || Math.abs(Number(locationInput.latitude)) > 90)) {
+      newErrors.latitude = 'Latitude must be a valid number between -90 and 90';
+    }
+
+    if (locationInput.longitude && (isNaN(Number(locationInput.longitude)) || Math.abs(Number(locationInput.longitude)) > 180)) {
+      newErrors.longitude = 'Longitude must be a valid number between -180 and 180';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      enqueueSnackbar('Please fix the form errors', { variant: 'error' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Prepare location data
+      let location = undefined;
+      if (locationInput.latitude && locationInput.longitude) {
+        location = {
+          latitude: Number(locationInput.latitude),
+          longitude: Number(locationInput.longitude),
+          address: locationInput.address.trim() || undefined,
+        };
+      }
+
+      const twinData: CreateTwinRequest = {
+        ...form,
+        location,
+        tags: form.tags?.filter(tag => tag.trim()) || [],
+      };
+
+      await apiService.createTwin(twinData);
+      enqueueSnackbar('Digital twin created successfully!', { variant: 'success' });
+      navigate('/things');
+    } catch (err: any) {
+      if (err.isOffline || err.code === 'ECONNREFUSED' || err.message?.includes('Network Error')) {
+        enqueueSnackbar('Cannot create twin - Backend services are offline. Start Docker services first.', { variant: 'warning' });
+      } else {
+        enqueueSnackbar('Failed to create digital twin', { variant: 'error' });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !form.tags?.includes(tagInput.trim())) {
+      setForm({
+        ...form,
+        tags: [...(form.tags || []), tagInput.trim()],
+      });
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setForm({
+      ...form,
+      tags: form.tags?.filter(tag => tag !== tagToRemove) || [],
+    });
+  };
+
+  const handleReset = () => {
+    setForm({
+      name: '',
+      type: '',
+      status: 'active',
+      description: '',
+      location: undefined,
+      tags: [],
+    });
+    setLocationInput({ latitude: '', longitude: '', address: '' });
+    setTagInput('');
+    setErrors({});
+  };
+
+  return (
+    <Box>
+      {/* Header */}
+      <Box display="flex" justifyContent="between" alignItems="center" mb={4}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a', mb: 1 }}>
+            Create Digital Twin
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Add a new digital twin to your ecosystem
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<CancelIcon />}
+          onClick={() => navigate('/things')}
+          sx={{ borderRadius: 2 }}
+        >
+          Back to Things
+        </Button>
+      </Box>
+
+      <form onSubmit={handleSubmit}>
+        <Grid container spacing={3}>
+          {/* Main Form */}
+          <Grid item xs={12} lg={8}>
+            <Card sx={{ mb: 3 }}>
+              <CardContent sx={{ p: 4 }}>
+                <Box display="flex" alignItems="center" mb={3}>
+                  <Avatar sx={{ bgcolor: '#1976d2', mr: 2 }}>
+                    <ThingIcon />
+                  </Avatar>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    Basic Information
+                  </Typography>
+                </Box>
+
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Name"
+                      placeholder="Enter twin name"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      error={!!errors.name}
+                      helperText={errors.name}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Type"
+                      value={form.type}
+                      onChange={(e) => setForm({ ...form, type: e.target.value })}
+                      error={!!errors.type}
+                      helperText={errors.type}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    >
+                      {twinTypes.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Status"
+                      value={form.status}
+                      onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    >
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                      <MenuItem value="maintenance">Maintenance</MenuItem>
+                      <MenuItem value="error">Error</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Description"
+                      placeholder="Enter description (optional)"
+                      multiline
+                      rows={3}
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* Location */}
+            <Card sx={{ mb: 3 }}>
+              <CardContent sx={{ p: 4 }}>
+                <Box display="flex" alignItems="center" mb={3}>
+                  <Avatar sx={{ bgcolor: '#2e7d32', mr: 2 }}>
+                    <LocationIcon />
+                  </Avatar>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    Location (Optional)
+                  </Typography>
+                </Box>
+
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Latitude"
+                      placeholder="e.g., 40.7128"
+                      value={locationInput.latitude}
+                      onChange={(e) => setLocationInput({ ...locationInput, latitude: e.target.value })}
+                      error={!!errors.latitude}
+                      helperText={errors.latitude}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Longitude"
+                      placeholder="e.g., -74.0060"
+                      value={locationInput.longitude}
+                      onChange={(e) => setLocationInput({ ...locationInput, longitude: e.target.value })}
+                      error={!!errors.longitude}
+                      helperText={errors.longitude}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Address"
+                      placeholder="e.g., New York, NY"
+                      value={locationInput.address}
+                      onChange={(e) => setLocationInput({ ...locationInput, address: e.target.value })}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* Tags */}
+            <Card>
+              <CardContent sx={{ p: 4 }}>
+                <Box display="flex" alignItems="center" mb={3}>
+                  <Avatar sx={{ bgcolor: '#ed6c02', mr: 2 }}>
+                    <TagIcon />
+                  </Avatar>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    Tags (Optional)
+                  </Typography>
+                </Box>
+
+                <Box display="flex" gap={2} mb={2}>
+                  <TextField
+                    fullWidth
+                    label="Add Tag"
+                    placeholder="Enter tag name"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      },
+                    }}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleAddTag}
+                    disabled={!tagInput.trim()}
+                    sx={{ borderRadius: 2, minWidth: 100 }}
+                  >
+                    Add
+                  </Button>
+                </Box>
+
+                {form.tags && form.tags.length > 0 && (
+                  <Box display="flex" flexWrap="wrap" gap={1}>
+                    {form.tags.map((tag, index) => (
+                      <Chip
+                        key={index}
+                        label={tag}
+                        onDelete={() => handleRemoveTag(tag)}
+                        deleteIcon={<ClearIcon />}
+                        variant="outlined"
+                        sx={{ borderRadius: 1 }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Summary Panel */}
+          <Grid item xs={12} lg={4}>
+            <Card sx={{ position: 'sticky', top: 24 }}>
+              <CardContent sx={{ p: 4 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
+                  Summary
+                </Typography>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Name:
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {form.name || 'Not specified'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Type:
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {form.type || 'Not specified'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Status:
+                  </Typography>
+                  <Chip
+                    label={form.status}
+                    size="small"
+                    color={form.status === 'active' ? 'success' : 'default'}
+                    sx={{ fontWeight: 500 }}
+                  />
+                </Box>
+
+                {(locationInput.latitude || locationInput.longitude) && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Location:
+                    </Typography>
+                    <Typography variant="body2">
+                      {locationInput.latitude && locationInput.longitude 
+                        ? `${locationInput.latitude}, ${locationInput.longitude}`
+                        : 'Partial coordinates'
+                      }
+                    </Typography>
+                    {locationInput.address && (
+                      <Typography variant="body2" color="text.secondary">
+                        {locationInput.address}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+
+                {form.tags && form.tags.length > 0 && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Tags:
+                    </Typography>
+                    <Typography variant="body2">
+                      {form.tags.length} tag{form.tags.length !== 1 ? 's' : ''}
+                    </Typography>
+                  </Box>
+                )}
+
+                <Divider sx={{ my: 3 }} />
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+                    disabled={loading}
+                    sx={{
+                      bgcolor: '#1976d2',
+                      '&:hover': { bgcolor: '#1565c0' },
+                      borderRadius: 2,
+                      py: 1.5,
+                    }}
+                  >
+                    {loading ? 'Creating...' : 'Create Digital Twin'}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="large"
+                    onClick={handleReset}
+                    disabled={loading}
+                    sx={{ borderRadius: 2, py: 1.5 }}
+                  >
+                    Reset Form
+                  </Button>
+                </Box>
+
+                {Object.keys(errors).length > 0 && (
+                  <Alert severity="error" sx={{ mt: 2 }}>
+                    Please fix the form errors above
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </form>
+    </Box>
+  );
+};
+
+export default Create;

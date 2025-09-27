@@ -29,40 +29,38 @@ services:
 
   # Eclipse Ditto Services - Completely standalone configuration
   ditto-policies:
-    image: eclipse/ditto-policies:3.2.0
+    image: docker.io/eclipse/ditto-policies:3.5.0
     container_name: ditto-policies
     restart: unless-stopped
+    ports:
+      - "2552:2551"
+    mem_limit: 1024m
+    cpus: 1.0
     environment:
       - MONGO_DB_HOSTNAME=mongodb
       - TZ=Europe/Berlin
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80 -Dconfig.file=/opt/ditto/conf/application.conf
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
-      # COMPLETELY DISABLE CLUSTERING  
-      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
-      - PEKKO_CLUSTER_BOOTSTRAP_REQUIRED_CONTACT_POINT_NR=0
-      - DISCOVERY_METHOD=config
-      - PEKKO_CLUSTER_SEED_NODES=""
-      - PEKKO_DISCOVERY_METHOD=config
+    volumes:
+      - ./config/application.conf:/opt/ditto/conf/application.conf:ro
     depends_on:
       - mongodb
     networks:
       - digital_twin_network
 
   ditto-things:
-    image: eclipse/ditto-things:3.2.0
+    image: docker.io/eclipse/ditto-things:3.5.0
     container_name: ditto-things
     restart: unless-stopped
+    mem_limit: 1024m
+    cpus: 1.0
     environment:
       - MONGO_DB_HOSTNAME=mongodb
       - TZ=Europe/Berlin
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80 -Dconfig.file=/opt/ditto/conf/application.conf
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
-      # COMPLETELY DISABLE CLUSTERING
-      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
-      - PEKKO_CLUSTER_BOOTSTRAP_REQUIRED_CONTACT_POINT_NR=0
-      - DISCOVERY_METHOD=config
-      - PEKKO_CLUSTER_SEED_NODES=""
-      - PEKKO_DISCOVERY_METHOD=config
+    volumes:
+      - ./config/application.conf:/opt/ditto/conf/application.conf:ro
     depends_on:
       - mongodb
       - ditto-policies
@@ -70,81 +68,38 @@ services:
       - digital_twin_network
 
   ditto-gateway:
-    image: eclipse/ditto-gateway:3.2.0
+    image: eclipse/ditto-gateway-custom:3.5.0-force-up
     container_name: ditto-gateway
     restart: unless-stopped
     ports:
       - "8080:8080"
-      - "2551:2551"  # Akka remoting port
+      - "8558:8558"
+    mem_limit: 1024m
+    cpus: 1.0
     environment:
       - MONGO_DB_HOSTNAME=mongodb
       - TZ=Europe/Berlin
+      # Use the custom configuration built into the image
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
       - ENABLE_DUMMY_AUTH=true
       - DITTO_GATEWAY_AUTHENTICATION_DUMMY_DUMMY=true
-      # SINGLE NODE CLUSTER CONFIGURATION - ALIGNED WITH WORKING SERVICES
-      - CLUSTER_BS_REQUIRED_CONTACT_POINT_NR=0
-      - PEKKO_CLUSTER_BOOTSTRAP_REQUIRED_CONTACT_POINT_NR=0
-      - DISCOVERY_METHOD=config
-      - PEKKO_CLUSTER_SEED_NODES=""
-      - PEKKO_DISCOVERY_METHOD=config
-      # DISABLE CLUSTER HEALTH CHECKS THAT BLOCK HTTP STARTUP
+      # CRITICAL: Enable Force-Up Bootstrap
+      - DITTO_GATEWAY_BOOTSTRAP_FORCE_UP=true
       - HEALTH_CHECK_ROLES_ENABLED=false
+    # Don't mount external config - use built-in force-up config
     depends_on:
       - mongodb
-      - ditto-policies
-      - ditto-things
-    networks:
-      - digital_twin_network
-
-  # User Interface Services
-  swagger-ui:
-    image: swaggerapi/swagger-ui:v5.9.1
-    container_name: swagger-ui
-    restart: unless-stopped
-    ports:
-      - "8082:8080"
-    environment:
-      - SWAGGER_JSON_URL=http://localhost:5000/api/openapi.json
-      - CORS_ENABLED=true
-      - SUPPORTED_SUBMIT_METHODS=["get", "post", "put", "delete", "patch"]
-      - BASE_URL=/
-    depends_on:
-      - app
     networks:
       - digital_twin_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 60s
 
-  ditto-ui:
-    image: eclipse/ditto-ui:3.4.0
-    container_name: ditto-ui
-    restart: unless-stopped
-    ports:
-      - "8083:8080"
-    environment:
-      - DITTO_API_BASE_URL=http://app:5000/api/ditto
-      - ENABLE_PRE_AUTH=false
-      - DITTO_USERNAME=ditto
-      - DITTO_PASSWORD=ditto
-      - DITTO_DEVOPS_USERNAME=devops
-      - DITTO_DEVOPS_PASSWORD=devopsPassword
-    depends_on:
-      - ditto-gateway
-      - app
-    networks:
-      - digital_twin_network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+  # No User Interface Services - Web UI completely removed
 
   app:
     build: .
@@ -164,6 +119,17 @@ services:
       - mongodb
       - mqtt_broker
       - ditto-gateway
+    networks:
+      - digital_twin_network
+
+  frontend:
+    build: ./frontend
+    container_name: digital_twin_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
     networks:
       - digital_twin_network
 

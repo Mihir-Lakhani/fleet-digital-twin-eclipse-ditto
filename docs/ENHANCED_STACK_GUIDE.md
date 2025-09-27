@@ -34,7 +34,7 @@ This document provides comprehensive instructions for the enhanced Digital Twin 
 #### Direct Access
 - **Ditto Gateway**: http://localhost:8080
 - **Swagger UI**: http://localhost:8082
-- **Ditto Web UI**: http://localhost:8083
+- **Ditto Gateway API**: http://localhost:8080/api/2
 - **Digital Twin App**: http://localhost:5000
 
 ## Quick Start

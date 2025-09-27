@@ -118,9 +118,6 @@ if ($Detached) {
         @{Name="ditto-things-search"; DisplayName="Ditto Things Search"},
         @{Name="ditto-connectivity"; DisplayName="Ditto Connectivity"},
         @{Name="ditto-gateway"; DisplayName="Ditto Gateway"},
-        @{Name="swagger-ui"; DisplayName="Swagger UI"},
-        @{Name="ditto-ui"; DisplayName="Ditto Web UI"},
-        @{Name="nginx"; DisplayName="Nginx Reverse Proxy"},
         @{Name="digital_twin_app"; DisplayName="Digital Twin App"}
     )
     

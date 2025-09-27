@@ -1,0 +1,45 @@
+# Simplified Eclipse Ditto Gateway with Configuration-Based Force-Up
+# No Java compilation - pure configuration approach
+
+FROM eclipse/ditto-gateway:3.5.0
+
+# Switch to root to modify files
+USER root
+
+# Replace with auto-detect configuration
+COPY auto-detect-ip-force-up.conf /opt/ditto/conf/application.conf
+
+# Create a simple startup script that uses the force-up configuration
+RUN echo '#!/bin/bash' > /opt/ditto/startup-force-up.sh && \
+    echo 'echo "=========================================="' >> /opt/ditto/startup-force-up.sh && \
+    echo 'echo "Custom Ditto Gateway - Force-Up Mode"' >> /opt/ditto/startup-force-up.sh && \
+    echo 'echo "Configuration: application.conf (force-up)"' >> /opt/ditto/startup-force-up.sh && \
+    echo 'echo "Force-Up: ${DITTO_GATEWAY_BOOTSTRAP_FORCE_UP:-true}"' >> /opt/ditto/startup-force-up.sh && \
+    echo 'echo "HTTP API will start immediately"' >> /opt/ditto/startup-force-up.sh && \
+    echo 'echo "=========================================="' >> /opt/ditto/startup-force-up.sh && \
+    echo '' >> /opt/ditto/startup-force-up.sh && \
+    echo '# Launch Ditto Gateway with force-up configuration' >> /opt/ditto/startup-force-up.sh && \
+    echo 'exec java $JAVA_TOOL_OPTIONS \' >> /opt/ditto/startup-force-up.sh && \
+    echo '     -Dconfig.file=/opt/ditto/conf/application.conf \' >> /opt/ditto/startup-force-up.sh && \
+    echo '     -jar /opt/ditto/ditto-gateway-service-3.5.0-allinone.jar' >> /opt/ditto/startup-force-up.sh && \
+    chmod +x /opt/ditto/startup-force-up.sh
+
+# Set ownership to ditto user
+RUN chown -R ditto:ditto /opt/ditto/startup-force-up.sh /opt/ditto/conf/application.conf
+
+# Environment variables for force-up behavior
+ENV DITTO_GATEWAY_BOOTSTRAP_FORCE_UP=true
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=80"
+
+# Switch back to ditto user for security
+USER ditto
+
+# Expose required ports
+EXPOSE 8080 8558 2551
+
+# Health check for immediate API availability
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
+    CMD curl -f http://localhost:8080/status/health || exit 1
+
+# Use the force-up startup script
+CMD ["/opt/ditto/startup-force-up.sh"]

@@ -1,40 +1,79 @@
-# Digital Twin Platform - Working Endpoints
+# Digital Twin API - Working Endpoints
 ===============================================
 
-This file contains all the working endpoints for your Digital Twin platform. Click on any link to access the service directly.
+This file contains all the working API endpoints for your Digital Twin platform. Use these endpoints to interact with the system programmatically.
 
-## 🚀 **MAIN PLATFORM ENDPOINTS**
+## 🚀 **MAIN API ENDPOINTS**
 
-### **Digital Twin API (Enhanced Flask Proxy)**
+### **Digital Twin API (Flask REST API)**
 - **Main API Base**: [http://localhost:5000](http://localhost:5000)
 - **Platform Health**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
 - **Service Connections**: [http://localhost:5000/test-connections](http://localhost:5000/test-connections)
-- **API Documentation**: [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
 - **API Status**: [http://localhost:5000/api/status](http://localhost:5000/api/status)
-- **OpenAPI Specification**: [http://localhost:5000/api/openapi.json](http://localhost:5000/api/openapi.json)
 
-## 🏗️ **MONGODB THING MANAGEMENT API** ⭐ **RECOMMENDED**
+## 🏗️ **MONGODB THING MANAGEMENT API** ⭐ **PRIMARY API**
 
-### **Direct MongoDB Endpoints (Port 5000)**
-- **List All Things**: [http://localhost:5000/mongodb/things](http://localhost:5000/mongodb/things)
+### **CRUD Operations for Digital Twins**
+- **List All Things**: `GET http://localhost:5000/mongodb/things`
 - **Create Thing**: `POST http://localhost:5000/mongodb/things`
 - **Get Thing by ID**: `GET http://localhost:5000/mongodb/things/{thingId}`
-- **Update Thing**: `PATCH http://localhost:5000/mongodb/things/{thingId}`
-- **Replace Thing**: `PUT http://localhost:5000/mongodb/things/{thingId}`
+- **Update Thing (Full)**: `PUT http://localhost:5000/mongodb/things/{thingId}`
+- **Update Thing (Partial)**: `PATCH http://localhost:5000/mongodb/things/{thingId}`
 - **Delete Thing**: `DELETE http://localhost:5000/mongodb/things/{thingId}`
 
-### **Root-Level Convenience Endpoints**
-- **List Things**: [http://localhost:5000/things](http://localhost:5000/things)
-- **Create Thing**: `POST http://localhost:5000/things`
-- **Get Thing**: `GET http://localhost:5000/things/{thingId}`
-- **Update Thing**: `PATCH http://localhost:5000/things/{thingId}`
-- **Delete Thing**: `DELETE http://localhost:5000/things/{thingId}`
+### **Example API Calls**
 
-## 📚 **WEB INTERFACES**
+**PowerShell Examples:**
+```powershell
+# List all things
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things" -Method GET
 
-### **API Documentation & Testing**
-- **Swagger UI**: [http://localhost:8082](http://localhost:8082) - Interactive API documentation
-- **Ditto UI**: [http://localhost:8083](http://localhost:8083) - Eclipse Ditto web interface
+# Create a new thing
+$thing = @{
+    thingId = "vehicle:truck001"
+    attributes = @{
+        manufacturer = "Volvo"
+        model = "FH16"
+        location = @{ latitude = 59.3293; longitude = 18.0686 }
+    }
+}
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things" -Method POST -Body ($thing | ConvertTo-Json -Depth 3) -ContentType "application/json"
+
+# Get specific thing
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things/vehicle:truck001" -Method GET
+
+# Delete thing
+Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things/vehicle:truck001" -Method DELETE
+```
+
+**cURL Examples:**
+```bash
+# List all things
+curl http://localhost:5000/mongodb/things
+
+# Create a new thing
+curl -X POST http://localhost:5000/mongodb/things \
+  -H "Content-Type: application/json" \
+  -d '{
+    "thingId": "sensor:temp001",
+    "attributes": {
+      "type": "temperature",
+      "location": "warehouse-a",
+      "unit": "celsius"
+    }
+  }'
+
+# Get specific thing
+curl http://localhost:5000/mongodb/things/sensor:temp001
+
+# Update thing (partial)
+curl -X PATCH http://localhost:5000/mongodb/things/sensor:temp001 \
+  -H "Content-Type: application/json" \
+  -d '{"attributes": {"temperature": 25.5}}'
+
+# Delete thing
+curl -X DELETE http://localhost:5000/mongodb/things/sensor:temp001
+```
 
 ## 🔧 **BACKEND SERVICES** (Internal Access Only)
 
@@ -44,110 +83,89 @@ This file contains all the working endpoints for your Digital Twin platform. Cli
   - Standard MQTT: `mqtt://localhost:1883`
   - WebSocket MQTT: `ws://localhost:9001`
 
-### **Eclipse Ditto Services** (Internal Network Only)
-- **Ditto Gateway**: `http://ditto-gateway:8080` (Container network only)
-- **Ditto Things**: `http://ditto-things:8080` (Container network only)
-- **Ditto Policies**: `http://ditto-policies:8080` (Container network only)
+### **Eclipse Ditto Services** (Container Network Only)
+- **Ditto Gateway**: `http://ditto-gateway:8080` (Internal API gateway)
+- **Ditto Things**: `http://ditto-things:8080` (Internal service)
+- **Ditto Policies**: `http://ditto-policies:8080` (Internal service)
 
-## ⚠️ **NON-WORKING ENDPOINTS** (Known Limitations)
+## 📊 **MONITORING & DEBUGGING**
 
-### **External Ditto Gateway** ❌
-- **Ditto Gateway HTTP**: [http://localhost:8080](http://localhost:8080) - *Blocked by clustering constraints*
-- **Ditto API**: `http://localhost:8080/api/2/things` - *Returns ERR_EMPTY_RESPONSE*
+### **Health Check Endpoints**
+- **API Health**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+- **Service Connectivity**: [http://localhost:5000/test-connections](http://localhost:5000/test-connections)
 
-**Why it doesn't work**: Eclipse Ditto Gateway requires minimum 2 contact points for cluster formation before starting external HTTP API. Internal communication works fine.
+### **Service Status Commands**
+```powershell
+# Check Docker services
+docker-compose -f docker-compose-final.yaml ps
 
-## 🛠️ **TESTING & DEMO SCRIPTS**
+# View API logs
+docker-compose -f docker-compose-final.yaml logs -f app
 
-### **Python Scripts**
-```bash
-# Run the comprehensive demo
-python scripts/demo_thing_management.py
-
-# Test connections
-python scripts/test_connections.py
-
-# Data ingestion script
-python scripts/data_ingest.py
+# Test MongoDB connection
+docker exec -it mongodb mongosh digitaltwindb
 ```
 
-### **PowerShell Scripts**
-```powershell
-# Run PowerShell demo
-.\scripts\demo_thing_management.ps1
+## 🔐 **API AUTHENTICATION & HEADERS**
 
-# Start enhanced Docker setup
-.\scripts\start_docker_enhanced.ps1
+### **CORS Support**
+All API endpoints support CORS with the following headers:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type, Authorization, Accept`
+
+### **Content Type**
+For POST, PUT, and PATCH requests:
+```
+Content-Type: application/json
 ```
 
-## 📋 **QUICK API TESTING**
+### **Request/Response Format**
+All API endpoints accept and return JSON format.
 
-### **Create a Digital Twin (PowerShell)**
-```powershell
-$thingData = @{
-    thingId = "vehicle:my_car_001"
-    attributes = @{ 
-        manufacturer = "Tesla"
-        model = "Model S" 
-        year = 2024
-    }
-    features = @{ 
-        battery = @{ 
-            properties = @{ level = 95.8 } 
-        } 
-    }
+**Success Response:**
+```json
+{
+  "success": true,
+  "thingId": "vehicle:truck001",
+  "message": "Thing created successfully",
+  "created": "2025-09-26T10:30:00Z"
 }
-
-Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things" -Method POST -Body ($thingData | ConvertTo-Json -Depth 10) -ContentType "application/json"
 ```
 
-### **List All Digital Twins**
-```powershell
-Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things" -Method GET
+**Error Response:**
+```json
+{
+  "error": "Thing not found",
+  "status": "not_found"
+}
 ```
 
-### **Get Specific Digital Twin**
-```powershell
-Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things/vehicle%3Amy_car_001" -Method GET
-```
+## 🚀 **GETTING STARTED**
 
-### **Delete Digital Twin**
-```powershell
-Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things/vehicle%3Amy_car_001" -Method DELETE
-```
+1. **Start Services:**
+   ```powershell
+   docker-compose -f docker-compose-final.yaml up -d
+   ```
 
-## 🎯 **RECOMMENDED WORKFLOW**
+2. **Test API:**
+   ```powershell
+   Invoke-RestMethod -Uri "http://localhost:5000/api/health" -Method GET
+   ```
 
-1. **Start Platform**: `docker-compose -f docker-compose-final.yaml up -d`
-2. **Check Health**: [http://localhost:5000/test-connections](http://localhost:5000/test-connections)
-3. **View API Docs**: [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
-4. **Run Demo**: `python scripts/demo_thing_management.py`
-5. **Create Things**: Use MongoDB endpoints (`/mongodb/things`)
-6. **Monitor**: Use Swagger UI at [http://localhost:8082](http://localhost:8082)
+3. **Test Connectivity:**
+   ```powershell
+   Invoke-RestMethod -Uri "http://localhost:5000/test-connections" -Method GET
+   ```
 
-## 📖 **DOCUMENTATION**
-
-- **Quick Reference**: [`docs/QUICK_REFERENCE.md`](docs/QUICK_REFERENCE.md)
-- **Complete Guide**: [`docs/MONGODB_THING_MANAGEMENT.md`](docs/MONGODB_THING_MANAGEMENT.md)
-- **Architecture**: [`docs/ACTUAL_ARCHITECTURE.md`](docs/ACTUAL_ARCHITECTURE.md)
-- **Issue Analysis**: [`docs/COMPLETE_ISSUE_ANALYSIS.md`](docs/COMPLETE_ISSUE_ANALYSIS.md)
-
-## 🏆 **PLATFORM STATUS**
-
-✅ **Fully Operational (95%)**:
-- MongoDB Thing Management API
-- Flask Enhanced Proxy
-- Health monitoring
-- Service connectivity
-- CORS support
-- API documentation
-
-⚠️ **Known Constraints (5%)**:
-- Eclipse Ditto external HTTP API blocked by clustering requirements
-- Workaround: Use MongoDB Thing Management endpoints instead
+4. **Create Your First Thing:**
+   ```powershell
+   $thing = @{ thingId = "test:001"; attributes = @{ name = "Test Device" } }
+   Invoke-RestMethod -Uri "http://localhost:5000/mongodb/things" -Method POST -Body ($thing | ConvertTo-Json) -ContentType "application/json"
+   ```
 
 ---
 
-**Last Updated**: September 25, 2025  
-**Platform Version**: 2.0.0  
-**Configuration**: docker-compose-final.yaml
+**System Status**: ✅ All API endpoints operational  
+**Configuration**: docker-compose-final.yaml  
+**Documentation**: See README.md for detailed setup instructions

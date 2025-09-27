@@ -32,7 +32,11 @@ class ThingManager:
         try:
             response = requests.post(self.endpoint, json=thing_data)
             if response.status_code == 201:
-                return response.json()
+                creation_result = response.json()
+                # After creation, fetch the full thing data
+                if creation_result.get('success') and creation_result.get('thingId'):
+                    return self.get_thing(creation_result['thingId'])
+                return creation_result
             else:
                 print(f"❌ Failed to create Thing: {response.status_code}")
                 print(response.text)
@@ -74,7 +78,7 @@ class ThingManager:
         """Update a Thing (partial update)"""
         try:
             response = requests.patch(f"{self.endpoint}/{thing_id}", json=update_data)
-            if response.status_code == 204:
+            if response.status_code == 200:  # Our API returns 200, not 204
                 return True
             elif response.status_code == 404:
                 print(f"🔍 Thing not found for update: {thing_id}")
@@ -91,7 +95,7 @@ class ThingManager:
         """Replace a Thing completely (PUT)"""
         try:
             response = requests.put(f"{self.endpoint}/{thing_id}", json=thing_data)
-            if response.status_code in [201, 204]:
+            if response.status_code in [200, 201]:  # Our API returns 200, not 204
                 return True
             else:
                 print(f"❌ Failed to replace Thing: {response.status_code}")
@@ -105,7 +109,7 @@ class ThingManager:
         """Delete a Thing"""
         try:
             response = requests.delete(f"{self.endpoint}/{thing_id}")
-            if response.status_code == 204:
+            if response.status_code == 200:  # Our API returns 200, not 204
                 return True
             elif response.status_code == 404:
                 print(f"🔍 Thing not found for deletion: {thing_id}")
@@ -180,9 +184,15 @@ def demo_vehicle_management():
     vehicle = manager.create_thing(vehicle_data)
     if vehicle:
         print(f"✅ Created vehicle: {vehicle['thingId']}")
-        print(f"📍 Location: {vehicle['features']['gps']['properties']['latitude']}, {vehicle['features']['gps']['properties']['longitude']}")
-        print(f"🔋 Battery: {vehicle['features']['engine']['properties']['battery_level']}%")
-        print(f"📈 Revision: {vehicle['_revision']}")
+        # Handle features safely
+        if 'features' in vehicle and 'gps' in vehicle['features']:
+            gps = vehicle['features']['gps']['properties']
+            print(f"📍 Location: {gps['latitude']}, {gps['longitude']}")
+        if 'features' in vehicle and 'engine' in vehicle['features']:
+            engine = vehicle['features']['engine']['properties']
+            print(f"🔋 Battery: {engine['battery_level']}%")
+        print(f"� Created: {vehicle.get('_created', 'N/A')}")
+        print(f"🕒 Modified: {vehicle.get('_modified', 'N/A')}")
     
     time.sleep(1)
     
@@ -221,12 +231,14 @@ def demo_vehicle_management():
         # Get updated vehicle data
         updated_vehicle = manager.get_thing("vehicle:demo_tesla_001")
         if updated_vehicle:
-            gps = updated_vehicle['features']['gps']['properties']
-            engine = updated_vehicle['features']['engine']['properties']
-            print(f"📍 New location: {gps['latitude']}, {gps['longitude']}")
-            print(f"🏃 Speed: {gps['speed']} mph")
-            print(f"🔋 Battery: {engine['battery_level']}% (Range: {engine['range_remaining']} mi)")
-            print(f"📈 Revision: {updated_vehicle['_revision']}")
+            if 'features' in updated_vehicle and 'gps' in updated_vehicle['features']:
+                gps = updated_vehicle['features']['gps']['properties']
+                print(f"📍 New location: {gps['latitude']}, {gps['longitude']}")
+                print(f"🏃 Speed: {gps['speed']} mph")
+            if 'features' in updated_vehicle and 'engine' in updated_vehicle['features']:
+                engine = updated_vehicle['features']['engine']['properties']
+                print(f"🔋 Battery: {engine['battery_level']}% (Range: {engine['range_remaining']} mi)")
+            print(f"� Modified: {updated_vehicle.get('_modified', 'N/A')}")
     
     time.sleep(1)
     
@@ -331,9 +343,13 @@ def demo_sensor_management():
         sensor = manager.create_thing(sensor_data)
         if sensor:
             sensors.append(sensor['thingId'])
-            temp = sensor['features']['temperature']['properties']['value']
-            humidity = sensor['features']['humidity']['properties']['value']
-            print(f"✅ Created {sensor['thingId']}: {temp}°C, {humidity}% humidity")
+            # Handle features safely
+            if 'features' in sensor and 'temperature' in sensor['features']:
+                temp = sensor['features']['temperature']['properties']['value']
+                humidity = sensor['features']['humidity']['properties']['value']
+                print(f"✅ Created {sensor['thingId']}: {temp}°C, {humidity}% humidity")
+            else:
+                print(f"✅ Created {sensor['thingId']}")
     
     time.sleep(1)
     
@@ -415,7 +431,7 @@ def demo_list_and_cleanup():
                 print(f"  • {vehicle['thingId']}")
                 print(f"    {attrs.get('manufacturer', 'Unknown')} {attrs.get('model', '')} ({attrs.get('year', 'N/A')})")
                 print(f"    🔋 Battery: {battery}% | 📍 Location: {lat}, {lon}")
-                print(f"    📈 Revision: {vehicle['_revision']} | 🕒 Modified: {vehicle['_modified']}")
+                print(f"     Modified: {vehicle.get('_modified', 'N/A')}")
         
         # Display sensors
         if sensors:
@@ -427,13 +443,13 @@ def demo_list_and_cleanup():
                 print(f"  • {sensor['thingId']}")
                 print(f"    📍 {attrs.get('location', 'Unknown')} - Floor {attrs.get('floor', 'N/A')}, {attrs.get('room', 'N/A')}")
                 print(f"    🌡️ {temp}°C | 💧 {humidity}% humidity")
-                print(f"    📈 Revision: {sensor['_revision']} | 🕒 Modified: {sensor['_modified']}")
+                print(f"     Modified: {sensor.get('_modified', 'N/A')}")
         
         # Display others
         if others:
             print(f"\n🔧 Other Things ({len(others)}):")
             for thing in others:
-                print(f"  • {thing['thingId']} (Rev: {thing['_revision']})")
+                print(f"  • {thing['thingId']} | Modified: {thing.get('_modified', 'N/A')}")
     
     # Cleanup demo data
     print(f"\n🧹 CLEANUP DEMO DATA")
