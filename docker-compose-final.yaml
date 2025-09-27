@@ -42,7 +42,7 @@ services:
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80 -Dconfig.file=/opt/ditto/conf/application.conf
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
     volumes:
-      - ./config/application.conf:/opt/ditto/conf/application.conf:ro
+      - ./config/application-validated.conf:/opt/ditto/conf/application.conf:ro
     depends_on:
       - mongodb
     networks:
@@ -60,7 +60,7 @@ services:
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80 -Dconfig.file=/opt/ditto/conf/application.conf
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
     volumes:
-      - ./config/application.conf:/opt/ditto/conf/application.conf:ro
+      - ./config/application-validated.conf:/opt/ditto/conf/application.conf:ro
     depends_on:
       - mongodb
       - ditto-policies
@@ -68,7 +68,7 @@ services:
       - digital_twin_network
 
   ditto-gateway:
-    image: eclipse/ditto-gateway-custom:3.5.0-force-up
+    image: docker.io/eclipse/ditto-gateway:3.5.0
     container_name: ditto-gateway
     restart: unless-stopped
     ports:
@@ -79,15 +79,13 @@ services:
     environment:
       - MONGO_DB_HOSTNAME=mongodb
       - TZ=Europe/Berlin
-      # Use the custom configuration built into the image
-      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=80 -Dconfig.file=/opt/ditto/conf/application.conf
       - DITTO_DDATA_NUMBER_OF_SHARDS=1
       - ENABLE_DUMMY_AUTH=true
       - DITTO_GATEWAY_AUTHENTICATION_DUMMY_DUMMY=true
-      # CRITICAL: Enable Force-Up Bootstrap
-      - DITTO_GATEWAY_BOOTSTRAP_FORCE_UP=true
       - HEALTH_CHECK_ROLES_ENABLED=false
-    # Don't mount external config - use built-in force-up config
+    volumes:
+      - ./config/application-validated.conf:/opt/ditto/conf/application.conf:ro
     depends_on:
       - mongodb
     networks:
