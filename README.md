@@ -1,6 +1,6 @@
-# Fleet Digital Twin API with Eclipse Ditto
+# Fleet Digital Twin API
 
-A comprehensive digital twin API solution for fleet management using Eclipse Ditto, MQTT, and MongoDB. This is a pure API-based implementation without web UI components.
+A comprehensive digital twin API solution for fleet management using MongoDB, MQTT, and React. This platform provides a complete working digital twin system with a MongoDB-direct architecture for optimal performance and reliability.
 
 ## 🏗️ Project Structure
 
@@ -29,7 +29,7 @@ A comprehensive digital twin API solution for fleet management using Eclipse Dit
 │   ├── start_services.sh # Shell script for service startup
 │   ├── deploy.sh         # Deployment automation script
 │   └── data_ingest.py    # Data ingestion utility
-├── docker-compose.yaml   # Docker Compose configuration
+├── docker-compose-standalone.yaml   # Docker Compose configuration (working)
 ├── Dockerfile            # Application container definition
 ├── requirements.txt      # Python dependencies
 └── README.md             # This file
@@ -40,16 +40,27 @@ A comprehensive digital twin API solution for fleet management using Eclipse Dit
 ### Prerequisites
 
 - Docker Desktop (running)
-- Python 3.13+
+- Node.js 18+ (for frontend)
+- Python 3.13+ (for backend)
 - Git
 
 ### Quick Start
 
 1. **Clone the repository** (if not already done)
 2. **Start Docker Desktop** and wait for it to fully initialize
-3. **Run the startup script**:
+3. **Start the complete system**:
    ```powershell
-   .\scripts\start_docker.ps1
+   # Navigate to project directory
+   cd "Digital Twin"
+
+   # Start all services using the standalone configuration
+   docker-compose -f docker-compose-standalone.yaml up -d
+   ```
+
+4. **Wait for services to initialize** (30-60 seconds)
+5. **Verify services are running:**
+   ```powershell
+   docker ps
    ```
 
 ### Manual Setup
@@ -59,8 +70,6 @@ If you prefer manual setup:
 1. **Set environment variables**:
    ```powershell
    $env:APP_PORT="5000"
-   $env:ECLIPSE_DITTO_API_URL="http://ditto-gateway:8080/api/2"
-   $env:ECLIPSE_DITTO_API_KEY="ditto_api"
    $env:MQTT_BROKER_URL="tcp://mqtt_broker:1883"
    $env:MQTT_BROKER_USER="mqtt_user"
    $env:MQTT_BROKER_PASSWORD="mqtt_password"
@@ -68,24 +77,30 @@ If you prefer manual setup:
    ```
 
 2. **Start services**:
-   ```bash
-   docker-compose up -d
+   ```powershell
+   docker-compose -f docker-compose-standalone.yaml up -d
    ```
 
 3. **Wait for services to initialize** (about 30 seconds)
 
+6. **Access your services:**
+
+   - **🌐 React Frontend**: http://localhost:3000 *(Main web interface)*
+   - **🔧 Backend API**: http://localhost:5000 *(REST API)*
+   - **📊 Health Check**: http://localhost:5000/api/health
+   - **🔍 Test Connections**: http://localhost:5000/test-connections
+   - **⭐ MongoDB API**: http://localhost:5000/mongodb/things *(Primary API)*
+
 ## 🔧 Services
 
-The application consists of the following backend services:
+The application consists of the following services:
 
 | Service | Description | Port | Status |
 |---------|-------------|------|--------|
-| **Digital Twin API** | Flask REST API application | 5000 | ✅ Running |
-| **MongoDB** | Database for data storage | 27017 | ✅ Running |
+| **React Frontend** | Web dashboard for digital twin management | 3000 | ✅ Running |
+| **Flask Backend** | REST API application with MongoDB integration | 5000 | ✅ Running |
+| **MongoDB** | Database for digital twin data storage | 27017 | ✅ Running |
 | **MQTT Broker** | Eclipse Mosquitto message broker | 1883, 9001 | ✅ Running |
-| **Ditto Gateway** | Eclipse Ditto API gateway | 8080 | ✅ Running |
-| **Ditto Policies** | Policy management service | - | ✅ Running |
-| **Ditto Things** | Thing management service | - | ✅ Running |
 
 ## 🌐 API Endpoints
 
@@ -105,8 +120,9 @@ The application consists of the following backend services:
 
 ### External Services
 - **MongoDB**: localhost:27017
-- **MQTT Broker**: localhost:1883
-- **Eclipse Ditto API**: http://localhost:8080/api/2
+- **MQTT Broker**: localhost:1883 (WebSocket: 9001)
+- **React Frontend**: http://localhost:3000
+- **Flask Backend**: http://localhost:5000
 
 ## 🛠️ API Usage Examples
 
@@ -212,35 +228,35 @@ CORS(app, resources={
 
 **Start All Services:**
 ```powershell
-# Full stack with all backend services
-docker-compose -f docker-compose-final.yaml up -d
+# Full stack with all services (MongoDB, MQTT, Backend API, React Frontend)
+docker-compose -f docker-compose-standalone.yaml up -d
 
 # Check service status
-docker-compose -f docker-compose-final.yaml ps
+docker-compose -f docker-compose-standalone.yaml ps
 ```
 
 **Start Core Services Only:**
 ```powershell
 # Start minimal set (API, MongoDB, MQTT)
-docker-compose -f docker-compose-final.yaml up -d mongodb mqtt_broker app
+docker-compose -f docker-compose-standalone.yaml up -d mongodb mqtt_broker app
 ```
 
 **Stop Services:**
 ```powershell
 # Stop all services
-docker-compose -f docker-compose-final.yaml down
+docker-compose -f docker-compose-standalone.yaml down
 
 # Stop and remove volumes (⚠️ removes all data)
-docker-compose -f docker-compose-final.yaml down -v
+docker-compose -f docker-compose-standalone.yaml down -v
 ```
 
 **View Logs:**
 ```powershell
 # View API logs
-docker-compose -f docker-compose-final.yaml logs -f app
+docker-compose -f docker-compose-standalone.yaml logs -f app
 
 # View all service logs
-docker-compose -f docker-compose-final.yaml logs -f
+docker-compose -f docker-compose-standalone.yaml logs -f
 ```
 
 ## 🔍 Monitoring & Debugging
@@ -323,10 +339,6 @@ Create a `.env` file in the config directory:
 # API Configuration
 APP_PORT=5000
 FLASK_ENV=development
-
-# Eclipse Ditto Configuration
-ECLIPSE_DITTO_API_URL=http://ditto-gateway:8080/api/2
-ECLIPSE_DITTO_API_KEY=ditto_api
 
 # MongoDB Configuration
 MONGODB_URL=mongodb://mongodb:27017

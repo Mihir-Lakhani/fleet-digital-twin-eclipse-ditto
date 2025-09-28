@@ -2,14 +2,8 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: mongodb
-    restart: unless-    networks:
-      - digital_twin_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/status/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s  ports:
+    restart: unless-stopped
+    ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_DATABASE: digitaltwindb
@@ -26,19 +20,18 @@ services:
       - "1883:1883"
       - "9001:9001"
     volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_logs:/mosquitto/log
-      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     networks:
       - digital_twin_network
-    user: root
 
-  # Eclipse Ditto Services - Completely standalone configuration
+  # Eclipse Ditto Services - CORRECTED CLUSTER CONFIGURATION
   ditto-policies:
     image: docker.io/eclipse/ditto-policies:3.5.0
     container_name: ditto-policies
     restart: unless-stopped
-    # Remove port mapping - cluster communication is internal only
+    # No external ports - cluster communication is internal only
     mem_limit: 1024m
     cpus: 1.0
     environment:
@@ -58,7 +51,7 @@ services:
     image: docker.io/eclipse/ditto-things:3.5.0
     container_name: ditto-things
     restart: unless-stopped
-    # Remove port mapping - cluster communication is internal only  
+    # No external ports - cluster communication is internal only  
     mem_limit: 1024m
     cpus: 1.0
     environment:
@@ -107,8 +100,7 @@ services:
       retries: 3
       start_period: 90s
 
-  # No User Interface Services - Web UI completely removed
-
+  # Application Services
   app:
     build: .
     container_name: digital_twin_app
@@ -123,6 +115,9 @@ services:
       - MQTT_BROKER_PASSWORD=mqtt_password
       - DATABASE_URL=mongodb://mongodb:27017/digitaltwindb
       - APP_PORT=5000
+    volumes:
+      - ./config:/app/config
+      - ./data/logs:/app/logs
     depends_on:
       - mongodb
       - mqtt_broker
