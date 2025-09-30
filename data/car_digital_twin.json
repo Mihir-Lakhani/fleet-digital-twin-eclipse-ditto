@@ -1,0 +1,61 @@
+{
+  "thingId": "car:horn-car-001",
+  "policyId": "car:horn-car-001",
+  "definition": "com.example:CarDigitalTwin:1.0.0",
+  "attributes": {
+    "metadata": {
+      "manufacturer": "DigitalTwin Motors",
+      "model": "Basic Horn Car",
+      "version": "1.0",
+      "description": "A simple digital twin of a car with horn functionality only",
+      "createdAt": "2025-09-30T00:00:00Z",
+      "lastModified": "2025-09-30T23:29:06.620522Z"
+    },
+    "specifications": {
+      "category": "vehicle",
+      "type": "car",
+      "features": [
+        "horn"
+      ]
+    },
+    "identification": {
+      "vehicleId": "CAR001",
+      "serialNumber": "HCR-2025-001",
+      "vin": "DTCAR2025001HORN"
+    }
+  },
+  "features": {
+    "horn": {
+      "definition": [
+        "com.example:Horn:1.0.0"
+      ],
+      "properties": {
+        "status": {
+          "state": "OFF",
+          "lastActivated": "2025-09-30T23:29:04.938620Z",
+          "activationCount": 34,
+          "description": "Current state of the car horn"
+        },
+        "configuration": {
+          "enabled": true,
+          "volume": "normal",
+          "pattern": "continuous",
+          "maxDuration": 5000,
+          "description": "Horn configuration settings"
+        },
+        "hardware": {
+          "type": "buzzer",
+          "pin": "digital",
+          "voltage": "5V",
+          "frequency": "2000Hz",
+          "description": "Physical horn/buzzer specifications"
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "created": "2025-09-30T00:00:00Z",
+    "modified": "2025-09-30T23:29:06.620522Z",
+    "_revision": 61
+  }
+}

@@ -1,0 +1,2 @@
+# Requirements for Arduino Buzzer Controller GUI
+pyserial>=3.5

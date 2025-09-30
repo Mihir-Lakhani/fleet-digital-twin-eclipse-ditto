@@ -2,7 +2,7 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: mongodb
-    restart: unless-    networks:
+    restart: unless-networks:
       - digital_twin_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/status/health"]
