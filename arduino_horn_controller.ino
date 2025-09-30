@@ -29,7 +29,7 @@ const int LED_PIN = 13;        // Built-in LED for status indication
 bool hornState = false;        // Current state of the horn
 char receivedChar;             // Character received from serial
 unsigned long lastCommandTime = 0;  // Time of last command
-const unsigned long TIMEOUT_MS = 5000;  // 5 second timeout for safety
+const unsigned long TIMEOUT_MS = 30000;  // 30 second timeout for safety
 
 // Buzzer timing variables
 unsigned long lastBuzzerTime = 0;  // Last time buzzer was toggled
@@ -105,6 +105,7 @@ void loop() {
   
   // Safety timeout - turn off horn if no command received for too long
   // This prevents the horn from staying on indefinitely if connection is lost
+  // Note: When GUI is disconnected, horn will turn off after 30 seconds
   if (hornState && (millis() - lastCommandTime > TIMEOUT_MS)) {
     turnHornOff();
     Serial.println("Safety timeout - Horn turned OFF");

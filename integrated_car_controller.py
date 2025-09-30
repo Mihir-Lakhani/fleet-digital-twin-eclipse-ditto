@@ -136,17 +136,17 @@ class IntegratedCarController:
         # It's synchronized with actual hardware state upon connection
         self.hardware_horn_state = False
         
-        # Synchronization variables
-        self.auto_sync_enabled = False
-        self.sync_thread = None
-        self.sync_running = False
-        
         # Create GUI
         self.create_widgets()
         
         # Initialize displays
         self.update_digital_twin_display()
         self.refresh_com_ports()
+        
+        # Add initial log messages
+        self.log_message("Car Digital Twin Controller started.")
+        self.log_message("Use Digital Twin tab for virtual control.")
+        self.log_message("Use Hardware Control tab for Arduino connection.")
         
         # Configure window close event
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -166,13 +166,8 @@ class IntegratedCarController:
         hw_frame = ttk.Frame(notebook)
         notebook.add(hw_frame, text="Hardware Control")
         
-        # Integrated Control tab
-        integrated_frame = ttk.Frame(notebook)
-        notebook.add(integrated_frame, text="Integrated Control")
-        
         self.create_digital_twin_tab(dt_frame)
         self.create_hardware_tab(hw_frame)
-        self.create_integrated_tab(integrated_frame)
     
     def create_digital_twin_tab(self, parent):
         """Create digital twin information and control tab"""
@@ -237,6 +232,18 @@ class IntegratedCarController:
         # Refresh button
         ttk.Button(parent, text="Refresh Digital Twin Data", 
                   command=self.refresh_digital_twin).pack(pady=10)
+        
+        # Activity log
+        log_frame = ttk.LabelFrame(parent, text="Activity Log", padding="10")
+        log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # Log text widget with scrollbar
+        self.dt_log_text = tk.Text(log_frame, height=6, width=50, wrap=tk.WORD)
+        dt_scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.dt_log_text.yview)
+        self.dt_log_text.configure(yscrollcommand=dt_scrollbar.set)
+        
+        self.dt_log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        dt_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     
     def create_hardware_tab(self, parent):
         """Create hardware control tab"""
@@ -287,78 +294,18 @@ class IntegratedCarController:
         ttk.Label(status_frame, text="Arduino Connection:").grid(row=0, column=0, sticky=tk.W)
         self.connection_status = ttk.Label(status_frame, text="Disconnected", foreground="red")
         self.connection_status.grid(row=0, column=1, sticky=tk.W, padx=(10, 0))
-    
-    def create_integrated_tab(self, parent):
-        """Create integrated control tab"""
         
-        # Synchronization frame
-        sync_frame = ttk.LabelFrame(parent, text="Digital Twin ↔ Hardware Synchronization", padding="10")
-        sync_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
-        
-        # Auto-sync checkbox
-        self.auto_sync_var = tk.BooleanVar()
-        self.auto_sync_check = ttk.Checkbutton(sync_frame, text="Enable Auto-Sync", 
-                                              variable=self.auto_sync_var, 
-                                              command=self.toggle_auto_sync)
-        self.auto_sync_check.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Manual sync buttons
-        sync_button_frame = ttk.Frame(sync_frame)
-        sync_button_frame.pack(fill=tk.X)
-        
-        ttk.Button(sync_button_frame, text="Sync DT → Hardware", 
-                  command=self.sync_dt_to_hardware).pack(side=tk.LEFT, padx=(0, 5))
-        
-        ttk.Button(sync_button_frame, text="Sync Hardware → DT", 
-                  command=self.sync_hardware_to_dt).pack(side=tk.LEFT, padx=5)
-        
-        # Integrated control frame
-        integrated_control_frame = ttk.LabelFrame(parent, text="Integrated Horn Control", padding="10")
-        integrated_control_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        # Status comparison
-        status_comparison_frame = ttk.Frame(integrated_control_frame)
-        status_comparison_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(status_comparison_frame, text="Digital Twin:").grid(row=0, column=0, sticky=tk.W)
-        self.integrated_dt_status = ttk.Label(status_comparison_frame, text="OFF", foreground="red", font=("Arial", 10, "bold"))
-        self.integrated_dt_status.grid(row=0, column=1, sticky=tk.W, padx=(10, 0))
-        
-        ttk.Label(status_comparison_frame, text="Hardware:").grid(row=1, column=0, sticky=tk.W)
-        self.integrated_hw_status = ttk.Label(status_comparison_frame, text="OFF", foreground="red", font=("Arial", 10, "bold"))
-        self.integrated_hw_status.grid(row=1, column=1, sticky=tk.W, padx=(10, 0))
-        
-        ttk.Label(status_comparison_frame, text="Sync Status:").grid(row=2, column=0, sticky=tk.W)
-        self.sync_status_label = ttk.Label(status_comparison_frame, text="Unknown", foreground="orange", font=("Arial", 10, "bold"))
-        self.sync_status_label.grid(row=2, column=1, sticky=tk.W, padx=(10, 0))
-        
-        # Integrated control buttons
-        integrated_button_frame = ttk.Frame(integrated_control_frame)
-        integrated_button_frame.pack(fill=tk.X, pady=(10, 0))
-        
-        self.integrated_on_btn = ttk.Button(integrated_button_frame, text="Turn Horn ON (Both DT + Hardware)", 
-                                           command=self.turn_horn_on_integrated, state="disabled")
-        self.integrated_on_btn.pack(side=tk.LEFT, padx=(0, 5))
-        
-        self.integrated_off_btn = ttk.Button(integrated_button_frame, text="Turn Horn OFF (Both DT + Hardware)", 
-                                            command=self.turn_horn_off_integrated, state="disabled")
-        self.integrated_off_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Activity log
-        log_frame = ttk.LabelFrame(parent, text="Activity Log", padding="10")
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Activity log for hardware tab
+        hw_log_frame = ttk.LabelFrame(parent, text="Activity Log", padding="10")
+        hw_log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         # Log text widget with scrollbar
-        self.log_text = tk.Text(log_frame, height=8, width=60, wrap=tk.WORD)
-        scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_text.yview)
-        self.log_text.configure(yscrollcommand=scrollbar.set)
+        self.hw_log_text = tk.Text(hw_log_frame, height=6, width=50, wrap=tk.WORD)
+        hw_scrollbar = ttk.Scrollbar(hw_log_frame, orient="vertical", command=self.hw_log_text.yview)
+        self.hw_log_text.configure(yscrollcommand=hw_scrollbar.set)
         
-        self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Initial log message
-        self.log_message("Integrated Car Digital Twin Controller started.")
-        self.log_message("Connect Arduino and enable auto-sync for full integration.")
+        self.hw_log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        hw_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     
     # Arduino/Hardware Methods
     def refresh_com_ports(self):
@@ -404,19 +351,28 @@ class IntegratedCarController:
             
             self.connected = True
             
-            # Display current states without forcing changes
+            # Sync hardware to match Digital Twin state upon connection
             dt_state = self.digital_twin.get_horn_status()
-            # Assume hardware state matches DT initially (we can't read it directly)
-            # User can manually sync if needed
-            self.hardware_horn_state = (dt_state == "ON")
+            if dt_state == "ON":
+                if self.send_command('1'):
+                    self.hardware_horn_state = True
+                    self.log_message("Synced hardware to Digital Twin state: Horn ON")
+                else:
+                    self.hardware_horn_state = False
+                    self.log_message("Failed to sync hardware - assuming OFF")
+            else:
+                if self.send_command('0'):
+                    self.hardware_horn_state = False
+                    self.log_message("Synced hardware to Digital Twin state: Horn OFF")
+                else:
+                    self.hardware_horn_state = False
+                    self.log_message("Failed to sync hardware - assuming OFF")
             
             # Update UI
             self.connection_status.config(text="Connected", foreground="green")
             self.connect_btn.config(text="Disconnect")
             self.hw_on_btn.config(state="normal")
             self.hw_off_btn.config(state="normal")
-            self.integrated_on_btn.config(state="normal")
-            self.integrated_off_btn.config(state="normal")
             self.port_combo.config(state="disabled")
             self.refresh_btn.config(state="disabled")
             
@@ -426,8 +382,6 @@ class IntegratedCarController:
             self.hw_horn_status.config(text=hw_state_text, foreground=hw_state_color)
             
             self.log_message(f"Successfully connected to {selected_port} at 9600 baud.")
-            self.log_message("Hardware state assumed from Digital Twin. Use manual sync if needed.")
-            self.update_integrated_display()
             
         except serial.SerialException as e:
             messagebox.showerror("Connection Error", f"Failed to connect to {selected_port}:\n{str(e)}")
@@ -439,10 +393,6 @@ class IntegratedCarController:
     def disconnect_arduino(self):
         """Close serial connection to Arduino"""
         try:
-            # Stop auto-sync if running
-            if self.auto_sync_enabled:
-                self.toggle_auto_sync()
-            
             if self.serial_connection and self.serial_connection.is_open:
                 self.serial_connection.close()
             
@@ -455,13 +405,10 @@ class IntegratedCarController:
             self.connect_btn.config(text="Connect")
             self.hw_on_btn.config(state="disabled")
             self.hw_off_btn.config(state="disabled")
-            self.integrated_on_btn.config(state="disabled")
-            self.integrated_off_btn.config(state="disabled")
             self.port_combo.config(state="readonly")
             self.refresh_btn.config(state="normal")
             
             self.log_message("Disconnected from Arduino. Hardware state maintained.")
-            self.update_integrated_display()
             
         except Exception as e:
             self.log_message(f"Error during disconnection: {str(e)}")
@@ -513,9 +460,6 @@ class IntegratedCarController:
             formatted_time = "Never"
         
         self.stats_labels["lastActivated"].config(text=formatted_time)
-        
-        # Update integrated display
-        self.update_integrated_display()
     
     def refresh_digital_twin(self):
         """Reload digital twin data from file"""
@@ -572,7 +516,6 @@ class IntegratedCarController:
                 self.update_digital_twin_display()
             else:
                 self.log_message("Horn turned ON in hardware, but failed to sync to Digital Twin.")
-            self.update_integrated_display()
     
     def turn_horn_off_hw_only(self):
         """Turn horn off in hardware and sync to digital twin"""
@@ -586,164 +529,24 @@ class IntegratedCarController:
                 self.update_digital_twin_display()
             else:
                 self.log_message("Horn turned OFF in hardware, but failed to sync to Digital Twin.")
-            self.update_integrated_display()
-    
-    def turn_horn_on_integrated(self):
-        """Turn horn on in both digital twin and hardware"""
-        success_dt = self.digital_twin.set_horn_status("ON")
-        success_hw = self.send_command('1') if self.connected else True
-        
-        if success_dt:
-            if self.connected:
-                self.hardware_horn_state = True
-                self.hw_horn_status.config(text="ON", foreground="green")
-            self.update_digital_twin_display()
-            self.log_message("Horn turned ON in both Digital Twin and hardware.")
-        else:
-            messagebox.showerror("Error", "Failed to update Digital Twin")
-    
-    def turn_horn_off_integrated(self):
-        """Turn horn off in both digital twin and hardware"""
-        success_dt = self.digital_twin.set_horn_status("OFF")
-        success_hw = self.send_command('0') if self.connected else True
-        
-        if success_dt:
-            if self.connected:
-                self.hardware_horn_state = False
-                self.hw_horn_status.config(text="OFF", foreground="red")
-            self.update_digital_twin_display()
-            self.log_message("Horn turned OFF in both Digital Twin and hardware.")
-        else:
-            messagebox.showerror("Error", "Failed to update Digital Twin")
-    
-    # Synchronization Methods
-    def toggle_auto_sync(self):
-        """Toggle auto-synchronization between digital twin and hardware"""
-        self.auto_sync_enabled = self.auto_sync_var.get()
-        
-        if self.auto_sync_enabled and self.connected:
-            self.start_auto_sync()
-            self.log_message("Auto-sync enabled - Digital Twin and hardware will stay synchronized.")
-        else:
-            self.stop_auto_sync()
-            self.log_message("Auto-sync disabled.")
-    
-    def start_auto_sync(self):
-        """Start auto-sync thread"""
-        if not self.sync_running:
-            self.sync_running = True
-            self.sync_thread = threading.Thread(target=self.auto_sync_worker, daemon=True)
-            self.sync_thread.start()
-    
-    def stop_auto_sync(self):
-        """Stop auto-sync thread"""
-        self.sync_running = False
-        if self.sync_thread:
-            self.sync_thread.join(timeout=1)
-    
-    def auto_sync_worker(self):
-        """Auto-sync worker thread"""
-        while self.sync_running and self.connected:
-            try:
-                # Check if states are different and sync if needed
-                dt_state = self.digital_twin.get_horn_status()
-                hw_state = "ON" if self.hardware_horn_state else "OFF"
-                
-                if dt_state != hw_state:
-                    # For now, prioritize digital twin state
-                    if dt_state == "ON":
-                        self.send_command('1')
-                        self.hardware_horn_state = True
-                    else:
-                        self.send_command('0')
-                        self.hardware_horn_state = False
-                    
-                    # Update hardware status display
-                    self.root.after(0, self.update_hardware_status_display)
-                
-                time.sleep(1)  # Check every second
-            except Exception as e:
-                print(f"Auto-sync error: {e}")
-                break
-    
-    def update_hardware_status_display(self):
-        """Update hardware status display (thread-safe)"""
-        state_text = "ON" if self.hardware_horn_state else "OFF"
-        state_color = "green" if self.hardware_horn_state else "red"
-        self.hw_horn_status.config(text=state_text, foreground=state_color)
-        self.update_integrated_display()
-    
-    def sync_dt_to_hardware(self):
-        """Manually sync digital twin state to hardware"""
-        if not self.connected:
-            messagebox.showwarning("Warning", "Arduino not connected")
-            return
-        
-        dt_state = self.digital_twin.get_horn_status()
-        if dt_state == "ON":
-            if self.send_command('1'):
-                self.hardware_horn_state = True
-                self.hw_horn_status.config(text="ON", foreground="green")
-                self.log_message("Synced Digital Twin → Hardware: Horn ON")
-        else:
-            if self.send_command('0'):
-                self.hardware_horn_state = False
-                self.hw_horn_status.config(text="OFF", foreground="red")
-                self.log_message("Synced Digital Twin → Hardware: Horn OFF")
-        
-        self.update_integrated_display()
-    
-    def sync_hardware_to_dt(self):
-        """Manually sync hardware state to digital twin"""
-        if not self.connected:
-            messagebox.showwarning("Warning", "Arduino not connected")
-            return
-        
-        hw_state = "ON" if self.hardware_horn_state else "OFF"
-        if self.digital_twin.set_horn_status(hw_state):
-            self.update_digital_twin_display()
-            self.log_message(f"Synced Hardware → Digital Twin: Horn {hw_state}")
-        else:
-            messagebox.showerror("Error", "Failed to update Digital Twin")
-    
-    def update_integrated_display(self):
-        """Update the integrated display showing sync status"""
-        dt_state = self.digital_twin.get_horn_status()
-        hw_state = "ON" if self.hardware_horn_state else "OFF"
-        
-        # Update status labels
-        self.integrated_dt_status.config(
-            text=dt_state,
-            foreground="green" if dt_state == "ON" else "red"
-        )
-        
-        if self.connected:
-            self.integrated_hw_status.config(
-                text=hw_state,
-                foreground="green" if hw_state == "ON" else "red"
-            )
-            
-            # Update sync status
-            if dt_state == hw_state:
-                self.sync_status_label.config(text="Synchronized", foreground="green")
-            else:
-                self.sync_status_label.config(text="Out of Sync", foreground="red")
-        else:
-            self.integrated_hw_status.config(text="Disconnected", foreground="gray")
-            self.sync_status_label.config(text="Hardware Offline", foreground="orange")
     
     def log_message(self, message):
-        """Add a timestamped message to the log"""
+        """Add a timestamped message to both activity logs"""
         timestamp = time.strftime("%H:%M:%S")
         log_entry = f"[{timestamp}] {message}\n"
         
-        self.log_text.insert(tk.END, log_entry)
-        self.log_text.see(tk.END)  # Auto-scroll to bottom
+        # Add to Digital Twin log
+        if hasattr(self, 'dt_log_text'):
+            self.dt_log_text.insert(tk.END, log_entry)
+            self.dt_log_text.see(tk.END)  # Auto-scroll to bottom
+        
+        # Add to Hardware log
+        if hasattr(self, 'hw_log_text'):
+            self.hw_log_text.insert(tk.END, log_entry)
+            self.hw_log_text.see(tk.END)  # Auto-scroll to bottom
     
     def on_closing(self):
         """Handle application close event"""
-        if self.auto_sync_enabled:
-            self.toggle_auto_sync()
         if self.connected:
             self.disconnect_arduino()
         self.root.destroy()
