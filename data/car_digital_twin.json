@@ -9,7 +9,7 @@
       "version": "1.0",
       "description": "A simple digital twin of a car with horn functionality only",
       "createdAt": "2025-09-30T00:00:00Z",
-      "lastModified": "2025-09-30T23:42:18.645139Z"
+      "lastModified": "2025-10-01T18:48:31.005732Z"
     },
     "specifications": {
       "category": "vehicle",
@@ -31,9 +31,9 @@
       ],
       "properties": {
         "status": {
-          "state": "ON",
-          "lastActivated": "2025-09-30T23:42:18.645125Z",
-          "activationCount": 41,
+          "state": "OFF",
+          "lastActivated": "2025-10-01T18:48:30.358989Z",
+          "activationCount": 60,
           "description": "Current state of the car horn"
         },
         "configuration": {
@@ -55,7 +55,7 @@
   },
   "_metadata": {
     "created": "2025-09-30T00:00:00Z",
-    "modified": "2025-09-30T23:42:18.645139Z",
-    "_revision": 72
+    "modified": "2025-10-01T18:48:31.005732Z",
+    "_revision": 111
   }
 }

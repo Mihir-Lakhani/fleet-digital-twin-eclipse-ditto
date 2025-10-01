@@ -23,47 +23,98 @@ from tkinter import ttk, messagebox
 import serial
 import serial.tools.list_ports
 import threading
+import pymongo
+from pymongo import MongoClient
 
 
 class CarDigitalTwin:
-    """Digital Twin representation of a car with horn functionality"""
+    """Digital Twin representation of a car with horn functionality - MongoDB Primary Storage"""
     
-    def __init__(self, json_file_path: str = None):
-        self.json_file_path = json_file_path or "data/car_digital_twin.json"
+    def __init__(self, thing_id: str = "car:horn-car-001", mongo_uri: str = "mongodb://localhost:27017/", db_name: str = "digitaltwindb"):
+        self.thing_id = thing_id
+        self.mongo_uri = mongo_uri
+        self.db_name = db_name
+        self.collection_name = "things"
+        self.client = None
+        self.db = None
+        self.collection = None
         self.data = {}
+        self.connect_to_mongodb()
         self.load_digital_twin()
     
-    def load_digital_twin(self) -> bool:
-        """Load digital twin data from JSON file"""
+    def connect_to_mongodb(self) -> bool:
+        """Establish connection to MongoDB"""
         try:
-            if os.path.exists(self.json_file_path):
-                with open(self.json_file_path, 'r', encoding='utf-8') as file:
-                    self.data = json.load(file)
+            self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
+            self.db = self.client[self.db_name]
+            self.collection = self.db[self.collection_name]
+            # Test connection
+            self.client.admin.command('ping')
+            print(f"✅ Connected to MongoDB: {self.db_name}")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to connect to MongoDB: {e}")
+            return False
+    
+    def load_digital_twin(self) -> bool:
+        """Load digital twin data from MongoDB"""
+        try:
+            if self.collection is None:
+                print("❌ MongoDB connection not established")
+                return False
+                
+            document = self.collection.find_one({"thingId": self.thing_id})
+            if document:
+                self.data = document
+                print(f"✅ Loaded digital twin from MongoDB: {self.thing_id}")
                 return True
             else:
-                print(f"Digital twin file not found: {self.json_file_path}")
+                print(f"❌ Digital twin not found in MongoDB: {self.thing_id}")
                 return False
         except Exception as e:
-            print(f"Error loading digital twin: {e}")
+            print(f"❌ Error loading digital twin from MongoDB: {e}")
             return False
     
     def save_digital_twin(self) -> bool:
-        """Save digital twin data to JSON file"""
+        """Save digital twin data to MongoDB"""
         try:
+            if self.collection is None:
+                print("❌ MongoDB connection not established")
+                return False
+            
             # Update metadata
-            self.data["_metadata"]["modified"] = datetime.datetime.now().isoformat() + "Z"
+            now = datetime.datetime.now().isoformat() + "Z"
+            self.data["_modified"] = now
+            self.data["_metadata"]["modified"] = now
             self.data["_metadata"]["_revision"] = self.data["_metadata"].get("_revision", 1) + 1
-            self.data["attributes"]["metadata"]["lastModified"] = self.data["_metadata"]["modified"]
+            self.data["attributes"]["metadata"]["lastModified"] = now
             
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(self.json_file_path), exist_ok=True)
+            # Update or insert document
+            result = self.collection.replace_one(
+                {"thingId": self.thing_id}, 
+                self.data, 
+                upsert=True
+            )
             
-            with open(self.json_file_path, 'w', encoding='utf-8') as file:
-                json.dump(self.data, file, indent=2, ensure_ascii=False)
-            return True
+            if result.modified_count > 0 or result.upserted_id:
+                print(f"✅ Saved digital twin to MongoDB: {self.thing_id}")
+                return True
+            else:
+                print(f"⚠️ No changes made to digital twin: {self.thing_id}")
+                return True
+                
         except Exception as e:
-            print(f"Error saving digital twin: {e}")
+            print(f"❌ Error saving digital twin to MongoDB: {e}")
             return False
+    
+    def close_connection(self):
+        """Close MongoDB connection"""
+        try:
+            if self.client:
+                self.client.close()
+                print("✅ MongoDB connection closed")
+        except Exception as e:
+            print(f"❌ Error closing MongoDB connection: {e}")
     
     def get_horn_status(self) -> str:
         """Get current horn status"""
@@ -87,7 +138,7 @@ class CarDigitalTwin:
             
             return self.save_digital_twin()
         except Exception as e:
-            print(f"Error setting horn status: {e}")
+            print(f"❌ Error setting horn status: {e}")
             return False
     
     def get_horn_statistics(self) -> Dict[str, Any]:
@@ -564,22 +615,45 @@ def main():
         print("Please install it using: pip install pyserial")
         return
     
-    # Check if digital twin file exists
-    dt_file = "data/car_digital_twin.json"
-    if not os.path.exists(dt_file):
-        print(f"Warning: Digital twin file not found at {dt_file}")
-        print("The application will still work, but digital twin features may be limited.")
+    # Check MongoDB connection
+    print("🔄 Checking MongoDB connection...")
+    try:
+        client = MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5000)
+        client.admin.command('ping')
+        client.close()
+        print("✅ MongoDB is accessible")
+    except Exception as e:
+        print(f"❌ MongoDB connection failed: {e}")
+        print("Please start MongoDB using: docker start mongodb")
+        print("Or start the full docker stack with: docker-compose up -d")
+        return
     
     # Create and run the application
     root = tk.Tk()
     app = IntegratedCarController(root)
     
+    def on_closing():
+        """Handle application shutdown"""
+        try:
+            if hasattr(app, 'digital_twin') and app.digital_twin:
+                app.digital_twin.close_connection()
+            if hasattr(app, 'serial_connection') and app.serial_connection:
+                app.serial_connection.close()
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+        finally:
+            root.destroy()
+    
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+    
     try:
         root.mainloop()
     except KeyboardInterrupt:
         print("\nApplication interrupted by user.")
+        on_closing()
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        on_closing()
 
 
 if __name__ == "__main__":

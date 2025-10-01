@@ -7,6 +7,7 @@
   - Connect buzzer/horn positive pin to digital pin 8
   - Connect buzzer/horn negative pin to GND
   - Connect Arduino to computer via USB
+  - Connect LCD: GND→GND, VCC→5V, SDA→A4, SCL→A5
   
   Serial Commands:
   - Send '1' to turn horn ON
@@ -21,6 +22,11 @@
   Date: September 30, 2025
 */
 
+#include <LiquidCrystal_I2C.h>
+
+// LCD setup
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // 0x27 is common I2C address
+
 // Pin definitions
 const int HORN_PIN = 8;        // Digital pin connected to buzzer/horn
 const int LED_PIN = 13;        // Built-in LED for status indication
@@ -28,8 +34,6 @@ const int LED_PIN = 13;        // Built-in LED for status indication
 // Variables
 bool hornState = false;        // Current state of the horn
 char receivedChar;             // Character received from serial
-unsigned long lastCommandTime = 0;  // Time of last command
-const unsigned long TIMEOUT_MS = 30000;  // 30 second timeout for safety
 
 // Buzzer timing variables
 unsigned long lastBuzzerTime = 0;  // Last time buzzer was toggled
@@ -49,6 +53,14 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
   hornState = false;
   
+  // Initialize LCD display
+  lcd.init();                    // Initialize the LCD
+  lcd.backlight();               // Turn on backlight
+  lcd.setCursor(0, 0);           // Set cursor to first line
+  lcd.print("Car Digital Twin");
+  lcd.setCursor(0, 1);           // Set cursor to second line  
+  lcd.print("Horn: OFF");        // Show initial horn status
+  
   // Send startup message
   Serial.println("Car Digital Twin - Horn Controller Ready");
   Serial.println("Commands: '1' = Horn ON, '0' = Horn OFF");
@@ -66,7 +78,6 @@ void loop() {
   // Check for incoming serial data
   if (Serial.available() > 0) {
     receivedChar = Serial.read();
-    lastCommandTime = millis();
     
     // Process commands
     switch (receivedChar) {
@@ -103,14 +114,6 @@ void loop() {
     }
   }
   
-  // Safety timeout - turn off horn if no command received for too long
-  // This prevents the horn from staying on indefinitely if connection is lost
-  // Note: When GUI is disconnected, horn will turn off after 30 seconds
-  if (hornState && (millis() - lastCommandTime > TIMEOUT_MS)) {
-    turnHornOff();
-    Serial.println("Safety timeout - Horn turned OFF");
-  }
-  
   // Small delay to prevent overwhelming the serial buffer
   delay(1);  // Reduced delay for better buzzer timing
 }
@@ -120,6 +123,10 @@ void turnHornOn() {
   digitalWrite(LED_PIN, HIGH);
   lastBuzzerTime = millis();  // Reset buzzer timing
   buzzerToggle = false;       // Start with buzzer OFF for first toggle
+  
+  // Update LCD display
+  lcd.setCursor(6, 1);        // Position after "Horn: "
+  lcd.print("ON ");           // Show ON status (extra space to clear OFF)
   
   Serial.println("Horn ON - Continuous ticking started");
   
@@ -132,6 +139,10 @@ void turnHornOff() {
   digitalWrite(HORN_PIN, LOW);   // Ensure buzzer is OFF
   digitalWrite(LED_PIN, LOW);
   buzzerToggle = false;          // Reset toggle state
+  
+  // Update LCD display
+  lcd.setCursor(6, 1);           // Position after "Horn: "
+  lcd.print("OFF");              // Show OFF status
   
   Serial.println("Horn OFF - Ticking stopped");
   
@@ -160,6 +171,11 @@ void emergencyStop() {
   digitalWrite(HORN_PIN, LOW);
   digitalWrite(LED_PIN, LOW);
   buzzerToggle = false;  // Reset toggle state
+  
+  // Update LCD display
+  lcd.setCursor(6, 1);           // Position after "Horn: "
+  lcd.print("OFF");              // Show OFF status
+  
   Serial.println("EMERGENCY STOP - Horn OFF");
   Serial.flush();
 }
