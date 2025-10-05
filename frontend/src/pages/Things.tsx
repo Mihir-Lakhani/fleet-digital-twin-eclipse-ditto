@@ -515,6 +515,35 @@ const Things: React.FC = () => {
                     </Box>
                   </Box>
                 )}
+
+                {/* Features */}
+                {twin.features && Object.keys(twin.features).length > 0 && (
+                  <Box mt={1.5}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                      Features:
+                    </Typography>
+                    <Box display="flex" gap={0.5} flexWrap="wrap" mt={0.5}>
+                      {Object.entries(twin.features).map(([featureName, featureData]: [string, any]) => (
+                        <Chip
+                          key={featureName}
+                          label={`${featureName}${featureData?.status?.state ? ` (${featureData.status.state})` : ''}`}
+                          size="small"
+                          color={featureData?.status?.state === 'ON' ? 'success' : 'default'}
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem', height: 20 }}
+                        />
+                      ))}
+                    </Box>
+                    {/* Feature details for horn */}
+                    {twin.features.horn && (
+                      <Box mt={1}>
+                        <Typography variant="caption" color="text.secondary">
+                          Horn: {twin.features.horn.status?.activationCount || 0} activations
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                )}
               </CardContent>
 
               <Divider />
@@ -552,6 +581,7 @@ const Things: React.FC = () => {
               <Tab icon={<InfoIcon />} label="Metadata" />
               <Tab icon={<BuildIcon />} label="Maintenance" />
               <Tab icon={<SettingsIcon />} label="Operations" />
+              <Tab icon={<PlayIcon />} label="Features" />
               <Tab icon={<LinkIcon />} label="Advanced" />
             </Tabs>
 
@@ -1105,8 +1135,120 @@ const Things: React.FC = () => {
               </Box>
             )}
 
-            {/* Advanced Tab */}
+            {/* Features Tab */}
             {editActiveTab === 5 && (
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>Device Features</Typography>
+                
+                {editForm.features && Object.keys(editForm.features).length > 0 ? (
+                  Object.entries(editForm.features).map(([featureName, featureData]: [string, any]) => (
+                    <Card key={featureName} sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom sx={{ textTransform: 'capitalize', color: 'primary.main' }}>
+                          {featureName} Feature
+                        </Typography>
+                        
+                        {/* Feature Status */}
+                        {featureData.status && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" gutterBottom>Status</Typography>
+                            <Grid container spacing={2}>
+                              {featureData.status.state && (
+                                <Grid item xs={12} md={4}>
+                                  <Chip 
+                                    label={`State: ${featureData.status.state}`}
+                                    color={featureData.status.state === 'ON' ? 'success' : 'default'}
+                                    variant="outlined"
+                                  />
+                                </Grid>
+                              )}
+                              {featureData.status.activationCount !== undefined && (
+                                <Grid item xs={12} md={4}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    Activations: <strong>{featureData.status.activationCount}</strong>
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {featureData.status.lastActivated && (
+                                <Grid item xs={12} md={4}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    Last Activated: <strong>{new Date(featureData.status.lastActivated).toLocaleString()}</strong>
+                                  </Typography>
+                                </Grid>
+                              )}
+                            </Grid>
+                          </Box>
+                        )}
+
+                        {/* Feature Configuration */}
+                        {featureData.configuration && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" gutterBottom>Configuration</Typography>
+                            <Grid container spacing={2}>
+                              {Object.entries(featureData.configuration).map(([configKey, configValue]: [string, any]) => (
+                                <Grid item xs={12} md={6} key={configKey}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {configKey.charAt(0).toUpperCase() + configKey.slice(1)}: <strong>{String(configValue)}</strong>
+                                  </Typography>
+                                </Grid>
+                              ))}
+                            </Grid>
+                          </Box>
+                        )}
+
+                        {/* Feature Hardware */}
+                        {featureData.hardware && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" gutterBottom>Hardware</Typography>
+                            <Grid container spacing={2}>
+                              {Object.entries(featureData.hardware).map(([hardwareKey, hardwareValue]: [string, any]) => (
+                                <Grid item xs={12} md={6} key={hardwareKey}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {hardwareKey.charAt(0).toUpperCase() + hardwareKey.slice(1)}: <strong>{String(hardwareValue)}</strong>
+                                  </Typography>
+                                </Grid>
+                              ))}
+                            </Grid>
+                          </Box>
+                        )}
+
+                        {/* Feature Controls */}
+                        {featureName === 'horn' && (
+                          <Box sx={{ mt: 2 }}>
+                            <Typography variant="subtitle2" gutterBottom>Controls</Typography>
+                            <Box display="flex" gap={2}>
+                              <Button 
+                                variant="contained" 
+                                color="primary" 
+                                size="small"
+                                startIcon={<PlayIcon />}
+                                disabled={!featureData.configuration?.enabled}
+                              >
+                                Activate {featureName}
+                              </Button>
+                              <Button 
+                                variant="outlined" 
+                                color="secondary" 
+                                size="small"
+                              >
+                                Test {featureName}
+                              </Button>
+                            </Box>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <Alert severity="info">
+                    No features configured for this digital twin.
+                  </Alert>
+                )}
+              </Box>
+            )}
+
+            {/* Advanced Tab */}
+            {editActiveTab === 6 && (
               <Box sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>Advanced Configuration</Typography>
                 
